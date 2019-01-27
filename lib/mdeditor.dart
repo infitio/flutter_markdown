@@ -9,18 +9,19 @@ class MarkdownEditor extends StatefulWidget {
   final String value;
   final String hint;
   final OnSavedCallback onSaved;
-  final Widget nonPositionedChild;
   final List<MarkdownTokenConfig> tokenConfigs;
   final TextStyle textStyle;
   final TextStyle highlightedTextStyle;
   final MarkDownBean bean;
+  final MarkdownEditorController controller;
+
 
   MarkdownEditor({
     Key key,
     this.value,
     this.hint,
     this.onSaved,
-    this.nonPositionedChild,
+    this.controller,
     this.tokenConfigs,
     this.textStyle,
     this.highlightedTextStyle,
@@ -52,11 +53,16 @@ class _MarkdownEditorState extends State<MarkdownEditor>{
     fontSize: 14.0,
   );
 
+  GlobalKey _editorKey = GlobalKey();
+  OverlayState overlayState;
+
   @override
   void initState() {
     super.initState();
+    widget.controller?._state = this;
     textEditingController = TextEditingController(text: widget.value);
     currentContentLength = textEditingController.text.length;
+    overlayState = Overlay.of(context);
     textEditingController.addListener(_listenTextInput);
   }
 
@@ -71,78 +77,69 @@ class _MarkdownEditorState extends State<MarkdownEditor>{
         }else{
           int indexNow = textEditingController.selection.baseOffset-1;
           if(indexNow < 0) return;
-          for(MarkdownTokenConfig tokenConfig in widget.tokenConfigs){
-            if(tokenConfig.hintRegExp!=null) {
-              for (Match m in tokenConfig.hintRegExp.allMatches(
+          for(MarkdownTokenConfig _tokenConfig in widget.tokenConfigs){
+            if(_tokenConfig.hintRegExp!=null) {
+              for (Match m in _tokenConfig.hintRegExp.allMatches(
                   textEditingController.text)) {
                 if (m.start < indexNow && m.end >= indexNow) {
-                  suggestions = await tokenConfig.suggestions(m.group(0));
+                  suggestions = await _tokenConfig.suggestions(m.group(0));
                   match = m;
-                  this.tokenConfig = tokenConfig;
+                  tokenConfig = _tokenConfig;
                 }
               }
             }
           }
           // postMeta index update
-          int textLength = textEditingController.text.length;
-          if(currentContentLength != textEditingController.text.length){
-            tokenConfig.meta.collection.forEach((SelectionInfo info){
-              if(textLength > currentContentLength){
-                if(info.startIndex <= indexNow-(textLength-currentContentLength) && indexNow-(textLength-currentContentLength) < info.endIndex){
-                  tokenConfig.meta.collection.remove(info);
-                }
-                else if(info.startIndex > indexNow - (textLength-currentContentLength)){
-                  info.updateIndex(info.startIndex+(textLength-currentContentLength));
+          if(suggestions.isNotEmpty) {
+            int textLength = textEditingController.text.length;
+            if (currentContentLength != textEditingController.text.length) {
+              for(MarkdownTokenConfig _tokenConfig in widget.tokenConfigs){
+                if(_tokenConfig.meta != null){
+                  _tokenConfig.meta.collection.forEach((SelectionInfo info) {
+                    if (textLength > currentContentLength) {
+                      if (info.startIndex <=
+                          indexNow - (textLength - currentContentLength) &&
+                          indexNow - (textLength - currentContentLength) <
+                              info.endIndex) {
+                        _tokenConfig.meta.collection.remove(info);
+                      }
+                      else if (info.startIndex >
+                          indexNow - (textLength - currentContentLength)) {
+                        info.updateIndex(
+                            info.startIndex + (textLength - currentContentLength));
+                      }
+                    }
+                    else {
+                      if (info.startIndex - 1 <= indexNow &&
+                          indexNow < info.endIndex) {
+                        _tokenConfig.meta.collection.remove(info);
+                      }
+                      else if (info.startIndex - 1 > indexNow) {
+                        info.updateIndex(
+                            info.startIndex - (currentContentLength - textLength));
+                      }
+                    }
+                  });
                 }
               }
-              else{
-                if(info.startIndex-1 <= indexNow && indexNow < info.endIndex){
-                  tokenConfig.meta.collection.remove(info);
-                }
-                else if(info.startIndex-1 > indexNow){
-                  info.updateIndex(info.startIndex-(currentContentLength-textLength));
-                }
-              }
-            });
+            }
           }
         }
         currentContentLength = textEditingController.text.length;
         setState(() {});
     }
-  }
-
-  @override
-  void dispose() {
-    // Clean up the controller when the Widget is removed from the Widget tree
-//    textEditingController.removeListener(_listenTextInput);
-    textEditingController.dispose();
-    super.dispose();
+    showSuggestions(context);
   }
 
   @override
   Widget build(BuildContext context) {
 
-    List<Widget> contentBoxChildren = [];
-    List<Widget> stackList = [];
-    stackList.add(TextFormField(
-        controller: textEditingController,
-        autofocus: true,
-        keyboardType: TextInputType.multiline,
-        maxLines: null,
-        style: baseTextStyle.copyWith(color: const Color(0xff273d52).withOpacity(0.1)),
-        decoration: InputDecoration(
-          contentPadding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-          hintText: widget.hint,
-          hintStyle: baseTextStyle.copyWith(color: const Color(0x80273d52)),
-          border: InputBorder.none,
-        ),
-        onSaved: widget.onSaved
-    ));
-
-    stackList.insert(0, PositionedDirectional(
-        child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-          child: MarkdownViewer(
+    List<Widget> stackList = [
+      //highlighted rich text
+      PositionedDirectional(
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+            child: MarkdownViewer(
               content: textEditingController.text,
               collapsible: false,
               textStyle: widget.textStyle,
@@ -153,74 +150,122 @@ class _MarkdownEditorState extends State<MarkdownEditor>{
                 MarkdownTokenTypes.mention,
                 MarkdownTokenTypes.hashTag
               ]*/
-          ),
-        )
-    ));
-
-    contentBoxChildren.add(
-        Stack(
-          children: stackList,
-        )
-    );
-    contentBoxChildren.add(_getStackForSuggestions());
-    return Container(
-      child: ListView(
-        shrinkWrap: true,
-        children: contentBoxChildren,
+            ),
+          )
       ),
-    );
-  }
-
-  Stack _getStackForSuggestions(){
-    List<Widget> stackChildren = [];
-    stackChildren.add(widget.nonPositionedChild);
-    if(suggestions.isNotEmpty){
-      stackChildren.add(PositionedDirectional(
-        child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width, maxHeight: 400.0),
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16.0),
-              decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.all(color: const Color(0x32273d52)),
-                  borderRadius: BorderRadius.circular(4.0)
-              ),
-              child: ListView(
-                shrinkWrap: true,
-                children: suggestions.map<Widget>((TokenSuggestion suggestion){
-                  return InkWell(
-                    child: Builder(builder: (BuildContext context){
-                      return suggestion.display;
-                    }),
-                    onTap: (){
-                      setState(() {
-                        int indexAt;
-                        String addToInput;
-                        int indexNow = textEditingController.selection.baseOffset;
-                        indexAt = match.start;
-                        addToInput = suggestion.onInsert();
-                        int offSet = indexAt + 1;
-                        textEditingController.text = textEditingController.text.substring(0, indexAt) + addToInput + textEditingController.text.substring(indexNow);
-                        offSet = offSet + addToInput.length;
-                        textEditingController.selection = TextSelection(
-                            baseOffset: textEditingController.selection.baseOffset+offSet,
-                            extentOffset: textEditingController.selection.extentOffset+offSet
-                        );
-                        if(tokenConfig.meta != null){
-                          tokenConfig.meta.collection.add(SelectionInfo(indexAt, indexAt+addToInput.length - 1, suggestion.data));
-                        }
-                      });
-                    },
-                  );
-                }).toList(),
-              ),
-            )
-        ),
-      ));
-    }
+      //Text input box
+      TextFormField(
+          controller: textEditingController,
+          autofocus: true,
+          keyboardType: TextInputType.multiline,
+          maxLines: null,
+          style: baseTextStyle.copyWith(color: const Color(0xff273d52).withOpacity(0.1)),
+          decoration: InputDecoration(
+            contentPadding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+            hintText: widget.hint,
+            hintStyle: baseTextStyle.copyWith(color: const Color(0x80273d52)),
+            border: InputBorder.none,
+          ),
+          onSaved: widget.onSaved
+      ),
+    ];
 
     return Stack(
-      children: stackChildren,
+      key: _editorKey,
+      children: stackList,
     );
   }
+
+  OverlayEntry overlaySuggestions;
+  showSuggestions(BuildContext context) async {
+    final RenderBox renderBoxRed = _editorKey.currentContext.findRenderObject();
+    final editorSize = renderBoxRed.size;
+    final editorPosition = renderBoxRed.localToGlobal(Offset.zero);
+    if(suggestions.length==0){
+      overlaySuggestions?.remove();
+      overlaySuggestions = null;
+      return;
+    }
+    overlaySuggestions = OverlayEntry(
+      builder: (context) => Positioned(
+        top: editorPosition.dy + editorSize.height,
+        child: _getStackForSuggestions(context),
+      )
+    );
+    overlayState.insert(overlaySuggestions);
+  }
+
+  Widget _getStackForSuggestions(BuildContext context){
+    if(suggestions.isNotEmpty) {
+      return Material(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: MediaQuery
+              .of(context)
+              .size
+              .width, maxHeight: 400.0),
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16.0),
+            decoration: BoxDecoration(
+                color: Colors.white,
+//                border: Border.all(color: Theme.of(context).primaryColorLight),
+                border: Border.all(color: const Color(0x32273d52)),
+                borderRadius: BorderRadius.circular(4.0)
+            ),
+            child: _buildSuggestions(),
+          )
+        )
+      );
+    }
+    return Container();
+  }
+
+  ListView _buildSuggestions(){
+    return ListView(
+      padding: EdgeInsets.zero,
+      shrinkWrap: true,
+      children: suggestions.map<Widget>((TokenSuggestion suggestion) {
+        return InkWell(
+          child: Builder(builder: (BuildContext context) {
+            return suggestion.display;
+          }),
+          onTap: () {
+            int indexNow = textEditingController.selection.baseOffset;
+            int indexAt = match.start;
+            String addToInput = suggestion.onInsert();
+            int offSet = indexAt + 1;
+            textEditingController.text =
+                textEditingController.text.substring(0, indexAt) + addToInput
+                    + textEditingController.text.substring(indexNow);
+            offSet = offSet + addToInput.length;
+            textEditingController.selection = TextSelection(
+                baseOffset: textEditingController.selection.baseOffset + offSet,
+                extentOffset: textEditingController.selection.extentOffset +
+                    offSet
+            );
+            if (tokenConfig.meta != null) {
+              tokenConfig.meta.collection.add(SelectionInfo(
+                  indexAt, indexAt + addToInput.length - 1,
+                  suggestion.data));
+            }
+            setState(() {});
+          }
+        );
+      }).toList(),
+    );
+  }
+
+  @override
+  void dispose() {
+    textEditingController.dispose();
+    super.dispose();
+  }
+
+}
+
+class MarkdownEditorController{
+
+  _MarkdownEditorState _state;
+
+  String get content => _state.textEditingController.text;
+
 }

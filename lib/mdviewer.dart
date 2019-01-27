@@ -22,7 +22,7 @@ class MarkdownViewer extends StatelessWidget{
     this.textStyle : const TextStyle(color:  Colors.black),
     this.highlightedTextStyle : const TextStyle(color:  Colors.indigo),
     this.formatTypes,
-    this.collapsible: true,
+    this.collapsible: false,
     this.collapseLimit: 240,
     this.tokenConfigs,
     this.fadedStyle: const TextStyle(color: Colors.grey, fontSize: 12.0)
@@ -42,13 +42,16 @@ class MarkdownViewer extends StatelessWidget{
   Widget build(BuildContext context){
     int len = 0;
     List<TextSpan> richTextChildren = [];
+    bool showReadMore = false;
     for(MarkdownToken span in _convertPostToTextSpans(context, content)){
       if(!collapsible || len < collapseLimit){
         richTextChildren.add(span.getSpan());
+      }else{
+        showReadMore = true;
       }
       len += span.text.length;
     }
-    if(collapsible && len > collapseLimit){
+    if(showReadMore){
       richTextChildren.add(MarkdownToken(
           config: MarkdownTokenConfig(type: null, regExp: null, textStyle: textStyle),
           text: "..."
