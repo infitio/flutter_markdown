@@ -55,14 +55,14 @@ class MarkdownTokenConfig{
 
   MarkdownTokenConfig.mention({
     this.textStyle,
-    this.postProcess
+    this.postProcess,
+    this.meta,
+    this.onTap
   }):
         type = MarkdownTokenTypes.mention,
-        regExp = RegExp(r'((http[s]{0,1}:\/\/)[a-zA-Z0-9\.%\/?:&,\-_#="]*)'),
+        regExp = RegExp(r'@[0-9a-zA-Z.\\s]+'),
         hintRegExp = RegExp("@[0-9a-zA-Z.\\s]*"),
-        meta = null,
-        suggestions = null,
-        onTap = urlOpener;
+        suggestions = null;
 
   MarkdownTokenConfig.link({
     this.textStyle,
@@ -78,20 +78,20 @@ class MarkdownTokenConfig{
   MarkdownTokenConfig.hashTag({
     this.textStyle,
     this.suggestions,
-    this.postProcess
+    this.postProcess,
+    this.onTap
   }):
         type = MarkdownTokenTypes.hashTag,
         regExp = RegExp(r'#[a-zA-Z0-9\/?.",:<>]+'),
-        hintRegExp = RegExp(r'#[a-zA-Z0-9\/?.",:<>]*'),
-        meta = null,
-        onTap = null;
+        hintRegExp = RegExp(r'#[a-zA-Z0-9\/?.",:<>\-]*'),
+        meta = null;
 
   MarkdownTokenConfig.bold({
     TextStyle textStyle,
     StringCallbackFn postProcess
   }):
         type = MarkdownTokenTypes.bold,
-        regExp = RegExp(r'\*[a-zA-Z0-9\/?.",:<>_~`\s]*\*'),
+        regExp = RegExp(r'\*[a-zA-Z0-9\/?.",:<>_~`\-\s]*\*'),
         hintRegExp = null,
         textStyle = textStyle.copyWith(fontWeight: FontWeight.bold),
         postProcess = postProcess ?? stripFirstAndLast,
@@ -104,7 +104,7 @@ class MarkdownTokenConfig{
     StringCallbackFn postProcess
   }):
         type = MarkdownTokenTypes.italic,
-        regExp = RegExp(r'_[a-zA-Z0-9\/?.",:<>\*~`\s]*_'),
+        regExp = RegExp(r'_[a-zA-Z0-9\/?.",:<>~`\-\*\s]*_'),
         hintRegExp = null,
         textStyle = textStyle.copyWith(fontStyle: FontStyle.italic),
         postProcess = postProcess ?? stripFirstAndLast,
@@ -117,7 +117,7 @@ class MarkdownTokenConfig{
     StringCallbackFn postProcess
   }):
         type = MarkdownTokenTypes.strikeThrough,
-        regExp = RegExp(r'~[a-zA-Z0-9\/?.",:<>\*_`\s]*~'),
+        regExp = RegExp(r'~[a-zA-Z0-9\/?.",:<>_`\-\*\s]*~'),
         hintRegExp = null,
         textStyle = textStyle.copyWith(decoration: TextDecoration.lineThrough),
         postProcess = postProcess ?? stripFirstAndLast,
@@ -130,7 +130,7 @@ class MarkdownTokenConfig{
     StringCallbackFn postProcess
   }):
         type = MarkdownTokenTypes.code,
-        regExp = RegExp(r'`[a-zA-Z0-9\/?.",:<>\*~_\s]*`'),
+        regExp = RegExp(r'`[a-zA-Z0-9\/?.",:<>~_\-\*\s]*`'),
         hintRegExp = null,
         textStyle = textStyle.copyWith(fontFamily: "Monospace"),
         postProcess = postProcess ?? stripFirstAndLast,
