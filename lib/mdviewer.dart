@@ -6,38 +6,30 @@ import 'package:adhara_markdown/utils.dart';
 class MarkdownViewer extends StatelessWidget{
 
   final String content;
-  final ContentMeta meta;
   final int loggedInUser;
   final TextStyle textStyle;
   final TextStyle highlightedTextStyle;
   final TextStyle fadedStyle;
   final List<MarkdownTokenTypes> formatTypes;
-  final bool enableCollapse;
-  final List<MarkdownTokenConfig> textSpanConfigs;
+  final bool collapsible;
+  final List<MarkdownTokenConfig> tokenConfigs;
   final int collapseLimit;
 
   MarkdownViewer({
     Key key,
     this.content: "",
-    this.meta,
     this.loggedInUser,
     this.textStyle : const TextStyle(color:  Colors.black),
     this.highlightedTextStyle : const TextStyle(color:  Colors.indigo),
     this.formatTypes,
-    this.enableCollapse: true,
+    this.collapsible: true,
     this.collapseLimit: 240,
-    this.textSpanConfigs,
+    this.tokenConfigs,
     this.fadedStyle: const TextStyle(color: Colors.grey, fontSize: 12.0)
   }) : super(key: key);
 
-  get _textSpanConfigs => textSpanConfigs ?? [
-    MarkdownTokenConfig(textStyle: highlightedTextStyle,
-        contentMeta: meta,
-        type: MarkdownTokenTypes.mention,
-        onTap: (MarkdownToken span){
-          print("tapped on text span...${span.text}");
-        }
-    ),
+  get _textSpanConfigs => tokenConfigs ?? [
+    MarkdownTokenConfig.mention(textStyle: highlightedTextStyle),
     MarkdownTokenConfig.link(textStyle: highlightedTextStyle),
     MarkdownTokenConfig.hashTag(textStyle: highlightedTextStyle),
     MarkdownTokenConfig.bold(textStyle: textStyle),
@@ -51,12 +43,12 @@ class MarkdownViewer extends StatelessWidget{
     int len = 0;
     List<TextSpan> richTextChildren = [];
     for(MarkdownToken span in _convertPostToTextSpans(context, content)){
-      if(enableCollapse && len < collapseLimit){
+      if(!collapsible || len < collapseLimit){
         richTextChildren.add(span.getSpan());
       }
       len += span.text.length;
     }
-    if(enableCollapse && len > collapseLimit){
+    if(collapsible && len > collapseLimit){
       richTextChildren.add(MarkdownToken(
           config: MarkdownTokenConfig(type: null, regExp: null, textStyle: textStyle),
           text: "..."
@@ -73,9 +65,9 @@ class MarkdownViewer extends StatelessWidget{
     }
 
     return RichText(
-      text: new TextSpan(
-        children: richTextChildren,
-      ),
+        text: new TextSpan(
+          children: richTextChildren,
+        ),
     );
   }
 
@@ -83,7 +75,7 @@ class MarkdownViewer extends StatelessWidget{
     List contentSpans = [content];
     for(MarkdownTokenConfig spanConfig in _textSpanConfigs){
       if(formatTypes==null || formatTypes.indexOf(spanConfig.type) != -1){
-        if(spanConfig.contentMeta != null){
+        if(spanConfig.meta != null){
           contentSpans = splitUserTokens(contentSpans, spanConfig);
         }else{
           contentSpans = splitTokensByRegex(contentSpans, spanConfig);
@@ -108,8 +100,8 @@ class MarkdownViewer extends StatelessWidget{
     for(var text in strings) {
       if (text is String) {
         int startIndex = 0;
-        if (userSpanConfig.contentMeta != null) {
-          userSpanConfig.contentMeta.collection.forEach((SelectionInfo info) {
+        if (userSpanConfig.meta != null) {
+          userSpanConfig.meta.collection.forEach((SelectionInfo info) {
             returnTexts.add(text.substring(startIndex, info.startIndex));
             returnTexts.add(
               MarkdownToken(

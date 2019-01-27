@@ -1,15 +1,15 @@
 class MarkDownBean{
 
   String content;
-  ContentMeta meta;
+  MarkdownMeta meta;
 
 }
 
-class ContentMeta{
+class MarkdownMeta{
 
   List<SelectionInfo> collection;
 
-  ContentMeta(this.collection){
+  MarkdownMeta(this.collection){
     if(collection==null){
       collection = [];
     }else{

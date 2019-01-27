@@ -8,9 +8,9 @@ class MarkdownEditor extends StatefulWidget {
 
   final String value;
   final String hint;
-  final Function onSaved;
+  final OnSavedCallback onSaved;
   final Widget nonPositionedChild;
-  final List<MarkdownTokenConfig> textSpanConfigs;
+  final List<MarkdownTokenConfig> tokenConfigs;
   final TextStyle textStyle;
   final TextStyle highlightedTextStyle;
   final MarkDownBean bean;
@@ -21,7 +21,7 @@ class MarkdownEditor extends StatefulWidget {
     this.hint,
     this.onSaved,
     this.nonPositionedChild,
-    this.textSpanConfigs,
+    this.tokenConfigs,
     this.textStyle,
     this.highlightedTextStyle,
     MarkDownBean bean
@@ -39,11 +39,10 @@ class _MarkdownEditorState extends State<MarkdownEditor>{
   String get tag => "AdharaTextField";
 
   TextEditingController textEditingController;
-  ContentMeta contentMeta;
   int currentContentLength;
   Match match;
   List<TokenSuggestion> suggestions = [];
-  MarkdownTokenConfig matchedSpanConfig;
+  MarkdownTokenConfig tokenConfig;
 
   TextStyle baseTextStyle = TextStyle(
     color:  const Color(0xff273d52),
@@ -59,30 +58,27 @@ class _MarkdownEditorState extends State<MarkdownEditor>{
     textEditingController = TextEditingController(text: widget.value);
     currentContentLength = textEditingController.text.length;
     textEditingController.addListener(_listenTextInput);
-    contentMeta = widget.bean.meta ?? ContentMeta([]);
   }
 
   _listenTextInput() async {
     setState((){
       suggestions = [];
       match = null;
-      matchedSpanConfig = null;
     });
     if(textEditingController != null){
         if(textEditingController.text.length < 1){
-          contentMeta = ContentMeta([]);
           suggestions = [];
         }else{
           int indexNow = textEditingController.selection.baseOffset-1;
           if(indexNow < 0) return;
-          for(MarkdownTokenConfig spanConfig in widget.textSpanConfigs){
-            if(spanConfig.hintRegExp!=null) {
-              for (Match m in spanConfig.hintRegExp.allMatches(
+          for(MarkdownTokenConfig tokenConfig in widget.tokenConfigs){
+            if(tokenConfig.hintRegExp!=null) {
+              for (Match m in tokenConfig.hintRegExp.allMatches(
                   textEditingController.text)) {
                 if (m.start < indexNow && m.end >= indexNow) {
-                  suggestions = await spanConfig.suggestions(m.group(0), contentMeta);
+                  suggestions = await tokenConfig.suggestions(m.group(0));
                   match = m;
-                  matchedSpanConfig = spanConfig;
+                  this.tokenConfig = tokenConfig;
                 }
               }
             }
@@ -90,10 +86,10 @@ class _MarkdownEditorState extends State<MarkdownEditor>{
           // postMeta index update
           int textLength = textEditingController.text.length;
           if(currentContentLength != textEditingController.text.length){
-            contentMeta.collection.forEach((SelectionInfo info){
+            tokenConfig.meta.collection.forEach((SelectionInfo info){
               if(textLength > currentContentLength){
                 if(info.startIndex <= indexNow-(textLength-currentContentLength) && indexNow-(textLength-currentContentLength) < info.endIndex){
-                  contentMeta.collection.remove(info);
+                  tokenConfig.meta.collection.remove(info);
                 }
                 else if(info.startIndex > indexNow - (textLength-currentContentLength)){
                   info.updateIndex(info.startIndex+(textLength-currentContentLength));
@@ -101,7 +97,7 @@ class _MarkdownEditorState extends State<MarkdownEditor>{
               }
               else{
                 if(info.startIndex-1 <= indexNow && indexNow < info.endIndex){
-                  contentMeta.collection.remove(info);
+                  tokenConfig.meta.collection.remove(info);
                 }
                 else if(info.startIndex-1 > indexNow){
                   info.updateIndex(info.startIndex-(currentContentLength-textLength));
@@ -148,15 +144,15 @@ class _MarkdownEditorState extends State<MarkdownEditor>{
           padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
           child: MarkdownViewer(
               content: textEditingController.text,
-              meta: contentMeta,
-              enableCollapse: false,
-              textStyle: baseTextStyle.copyWith(color: const Color(0xff273d52)),
-              highlightedTextStyle: baseTextStyle.copyWith(color: const Color(0xff006ce0)),
-              formatTypes: [
+              collapsible: false,
+              textStyle: widget.textStyle,
+              highlightedTextStyle: widget.highlightedTextStyle,
+              tokenConfigs: widget.tokenConfigs,
+              /*formatTypes: [
                 MarkdownTokenTypes.link,
                 MarkdownTokenTypes.mention,
                 MarkdownTokenTypes.hashTag
-              ]
+              ]*/
           ),
         )
     ));
@@ -210,8 +206,8 @@ class _MarkdownEditorState extends State<MarkdownEditor>{
                             baseOffset: textEditingController.selection.baseOffset+offSet,
                             extentOffset: textEditingController.selection.extentOffset+offSet
                         );
-                        if(matchedSpanConfig.hintRegExp != null && matchedSpanConfig.regExp == null){
-                          contentMeta.collection.add(SelectionInfo(indexAt, indexAt+addToInput.length - 1, suggestion.data));
+                        if(tokenConfig.meta != null){
+                          tokenConfig.meta.collection.add(SelectionInfo(indexAt, indexAt+addToInput.length - 1, suggestion.data));
                         }
                       });
                     },

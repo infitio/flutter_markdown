@@ -6,8 +6,9 @@ import 'package:adhara_markdown/mdbean.dart';
 
 typedef String StringCallbackFn(String span);
 typedef void AdharaRichTextSpanTapCallback(MarkdownToken richTextSpan);
-typedef Future<List<TokenSuggestion>> AdharaRichTextSuggestionCallback(String hint, ContentMeta contentMeta);
+typedef Future<List<TokenSuggestion>> AdharaRichTextSuggestionCallback(String hint);
 typedef String OnSuggestionInsert();
+typedef void OnSavedCallback(String content);
 
 enum MarkdownTokenTypes{
   link,
@@ -37,7 +38,7 @@ class MarkdownTokenConfig{
   final RegExp hintRegExp;
   final TextStyle textStyle;
   final StringCallbackFn postProcess;
-  final ContentMeta contentMeta;
+  final MarkdownMeta meta;
   final AdharaRichTextSpanTapCallback onTap;
   final AdharaRichTextSuggestionCallback suggestions;
 
@@ -47,7 +48,7 @@ class MarkdownTokenConfig{
     this.regExp,
     this.hintRegExp,
     this.postProcess,
-    this.contentMeta,
+    this.meta,
     this.onTap,
     this.suggestions
   });
@@ -58,8 +59,8 @@ class MarkdownTokenConfig{
   }):
         type = MarkdownTokenTypes.mention,
         regExp = RegExp(r'((http[s]{0,1}:\/\/)[a-zA-Z0-9\.%\/?:&,\-_#="]*)'),
-        hintRegExp = RegExp("@[0-9a-zA-Z\s]+"),
-        contentMeta = null,
+        hintRegExp = RegExp("@[0-9a-zA-Z.\\s]*"),
+        meta = null,
         suggestions = null,
         onTap = urlOpener;
 
@@ -70,7 +71,7 @@ class MarkdownTokenConfig{
         type = MarkdownTokenTypes.link,
         regExp = RegExp(r'((http[s]{0,1}:\/\/)[a-zA-Z0-9\.%\/?:&,\-_#="]*)'),
         hintRegExp = null,
-        contentMeta = null,
+        meta = null,
         suggestions = null,
         onTap = urlOpener;
 
@@ -80,9 +81,9 @@ class MarkdownTokenConfig{
     this.postProcess
   }):
         type = MarkdownTokenTypes.hashTag,
-        regExp = RegExp(r'#[a-zA-Z0-9\/?.",:<>]*'),
+        regExp = RegExp(r'#[a-zA-Z0-9\/?.",:<>]+'),
         hintRegExp = RegExp(r'#[a-zA-Z0-9\/?.",:<>]*'),
-        contentMeta = null,
+        meta = null,
         onTap = null;
 
   MarkdownTokenConfig.bold({
@@ -94,7 +95,7 @@ class MarkdownTokenConfig{
         hintRegExp = null,
         textStyle = textStyle.copyWith(fontWeight: FontWeight.bold),
         postProcess = postProcess ?? stripFirstAndLast,
-        contentMeta = null,
+        meta = null,
         suggestions = null,
         onTap = null;
 
@@ -107,7 +108,7 @@ class MarkdownTokenConfig{
         hintRegExp = null,
         textStyle = textStyle.copyWith(fontStyle: FontStyle.italic),
         postProcess = postProcess ?? stripFirstAndLast,
-        contentMeta = null,
+        meta = null,
         suggestions = null,
         onTap = null;
 
@@ -120,7 +121,7 @@ class MarkdownTokenConfig{
         hintRegExp = null,
         textStyle = textStyle.copyWith(decoration: TextDecoration.lineThrough),
         postProcess = postProcess ?? stripFirstAndLast,
-        contentMeta = null,
+        meta = null,
         suggestions = null,
         onTap = null;
 
@@ -133,7 +134,7 @@ class MarkdownTokenConfig{
         hintRegExp = null,
         textStyle = textStyle.copyWith(fontFamily: "Monospace"),
         postProcess = postProcess ?? stripFirstAndLast,
-        contentMeta = null,
+        meta = null,
         suggestions = null,
         onTap = null;
 
