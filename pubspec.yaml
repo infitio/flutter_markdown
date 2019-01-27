@@ -1,5 +1,5 @@
 name: adhara_markdown
-description: Minimalistic, highly customizable markdown editor and viewer by adhara
+description: Minimalistic, highly customizable, regexp based markdown editor and viewer by adhara
 version: 0.0.1
 author:
 homepage:

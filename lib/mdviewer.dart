@@ -11,10 +11,11 @@ class MarkDownViewer extends StatelessWidget{
   final int loggedInUser;
   final TextStyle textStyle;
   final TextStyle highlightedTextStyle;
+  final TextStyle fadedStyle;
   final List<TextSpanType> formatTypes;
   final bool enableCollapse;
-  final List<AdharaRichTextSpanConfig> metaBasedConfigs;
-  final List<AdharaRichTextSpanConfig> regExpConfigs;
+  final List<AdharaRichTextSpanConfig> textSpanConfigs;
+  final int collapseLimit;
 
   MarkDownViewer({
     Key key,
@@ -38,20 +39,25 @@ class MarkDownViewer extends StatelessWidget{
     ),
     this.formatTypes,
     this.enableCollapse: true,
-    this.metaBasedConfigs,
-    this.regExpConfigs
+    this.collapseLimit: 240,
+    this.textSpanConfigs,
+    this.fadedStyle: const TextStyle(
+        color:  const Color(0xff273d52),
+        fontWeight: FontWeight.w400,
+        fontFamily: "SFProText",
+        fontStyle:  FontStyle.normal,
+        fontSize: 12.0
+    )
   }) : super(key: key);
 
-  get _metaBasedConfigs => metaBasedConfigs ?? [
-    AdharaRichTextSpanConfig.forMeta(textStyle: highlightedTextStyle,
+  get _textSpanConfigs => textSpanConfigs ?? [
+    AdharaRichTextSpanConfig(textStyle: highlightedTextStyle,
         contentMeta: meta,
+        type: TextSpanType.mention,
         onTap: (AdharaRichTextSpan span){
           print("tapped on text span...${span.text}");
         }
     ),
-  ];
-
-  get _regExpConfigs => regExpConfigs ?? [
     AdharaRichTextSpanConfig.link(highlightedTextStyle),
     AdharaRichTextSpanConfig.hashTag(highlightedTextStyle),
     AdharaRichTextSpanConfig.bold(textStyle),
@@ -62,27 +68,19 @@ class MarkDownViewer extends StatelessWidget{
 
   @override
   Widget build(BuildContext context){
-    String postContent = content;
-    bool readMore = false;
-    ContentMeta postMeta = meta;
-    if(enableCollapse){
-      if(postContent.length > 240){
-        readMore = true;
-        postContent = postContent.substring(0, 240 - 5) + ".... ";
-        if(postMeta != null){
-          postMeta.collection.removeWhere((selectionMeta) => selectionMeta.endIndex > 239 - 5);
-        }
+    int len = 0;
+    List<TextSpan> richTextChildren = [];
+    for(AdharaRichTextSpan span in _convertPostToTextSpans(context, content)){
+      if(enableCollapse && len < collapseLimit){
+        richTextChildren.add(span.getSpan());
       }
+      len += span.text.length;
     }
-    List<TextSpan> richTextChildren = _convertPostToTextSpans(context, postContent);
-    if(readMore){
-      TextStyle fadedStyle = const TextStyle(
-          color:  const Color(0xff273d52),
-          fontWeight: FontWeight.w400,
-          fontFamily: "SFProText",
-          fontStyle:  FontStyle.normal,
-          fontSize: 12.0
-      );
+    if(enableCollapse && len > collapseLimit){
+      richTextChildren.add(AdharaRichTextSpan(
+          config: AdharaRichTextSpanConfig(type: null, regExp: null, textStyle: textStyle),
+          text: "..."
+      ).getSpan());
       richTextChildren.add(TextSpan(
         text: "Read more",
         style: fadedStyle.copyWith(
@@ -92,7 +90,6 @@ class MarkDownViewer extends StatelessWidget{
         ),
         recognizer: null,
       ));
-      readMore = false;
     }
 
     return RichText(
@@ -104,22 +101,21 @@ class MarkDownViewer extends StatelessWidget{
 
   _convertPostToTextSpans(BuildContext context, String content){
     List contentSpans = [content];
-    for(AdharaRichTextSpanConfig spanConfig in _metaBasedConfigs){
+    for(AdharaRichTextSpanConfig spanConfig in _textSpanConfigs){
       if(formatTypes==null || formatTypes.indexOf(spanConfig.type) != -1){
-        contentSpans = splitUserTokens(contentSpans, spanConfig);
+        if(spanConfig.contentMeta != null){
+          contentSpans = splitUserTokens(contentSpans, spanConfig);
+        }else{
+          contentSpans = splitTokensByRegex(contentSpans, spanConfig);
+        }
       }
     }
-    for(AdharaRichTextSpanConfig spanConfig in _regExpConfigs){
-      if(formatTypes==null || formatTypes.indexOf(spanConfig.type) != -1){
-        contentSpans = splitTokensByRegex(contentSpans, spanConfig);
-      }
-    }
-    return contentSpans.map<TextSpan>((postSpan){
+    return contentSpans.map<AdharaRichTextSpan>((postSpan){
       if(postSpan is String){
         return AdharaRichTextSpan(
             config: AdharaRichTextSpanConfig(type: null, regExp: null, textStyle: textStyle),
             text: postSpan
-        ).getSpan();
+        );
       }else{
         return postSpan;
       }
@@ -140,7 +136,7 @@ class MarkDownViewer extends StatelessWidget{
                 config: userSpanConfig,
                 selectionInfo: info,
                 text: text.substring(info.startIndex, info.endIndex + 1),
-              ).getSpan(),
+              ),
             );
             startIndex = info.endIndex + 1;
           });
@@ -163,7 +159,7 @@ class MarkDownViewer extends StatelessWidget{
           returnTexts.add(AdharaRichTextSpan(
               config: spanConfig,
               text: (spanConfig.postProcess!=null)?spanConfig.postProcess(matchedText):matchedText,
-          ).getSpan());
+          ));
           startIndex = m.end;
         }
         returnTexts.add(text.substring(startIndex, text.length));
@@ -188,44 +184,57 @@ enum TextSpanType{
 
 typedef String StringCallbackFn(String span);
 typedef void AdharaRichTextSpanTapCallback(AdharaRichTextSpan richTextSpan);
+typedef Future<List<Suggestion>> AdharaRichTextSuggestionCallback(String hint, ContentMeta contentMeta);
 
 class AdharaRichTextSpanConfig{
 
   final TextSpanType type;
   final RegExp regExp;
+  final RegExp hintRegExp;
   final TextStyle textStyle;
   final StringCallbackFn postProcess;
   final ContentMeta contentMeta;
   final AdharaRichTextSpanTapCallback onTap;
+  final AdharaRichTextSuggestionCallback suggestions;
 
   AdharaRichTextSpanConfig({
     @required this.type,
-    @required this.regExp,
     @required this.textStyle,
+    this.regExp,
+    this.hintRegExp,
     this.postProcess,
     this.contentMeta,
-    this.onTap
+    this.onTap,
+    this.suggestions
   });
 
-  AdharaRichTextSpanConfig.forMeta({
-    this.contentMeta,
-    this.textStyle,
-    this.postProcess,
-    this.onTap,
-    this.type: TextSpanType.mention
-  }): regExp = RegExp(r'((http[s]{0,1}:\/\/)[a-zA-Z0-9\.%\/=?:&,"]*)');
+  AdharaRichTextSpanConfig.mention(TextStyle textStyle, [StringCallbackFn postProcess]):
+        type = TextSpanType.mention,
+        regExp = RegExp(r'((http[s]{0,1}:\/\/)[a-zA-Z0-9\.%\/?:&,\-_#="]*)'),
+        hintRegExp = RegExp("@[0-9a-zA-Z\s]+"),
+        textStyle = textStyle,
+        postProcess = postProcess,
+        contentMeta = null,
+        suggestions = null,
+        onTap = urlOpener;
 
   AdharaRichTextSpanConfig.link(TextStyle textStyle, [StringCallbackFn postProcess]):
         type = TextSpanType.link,
         regExp = RegExp(r'((http[s]{0,1}:\/\/)[a-zA-Z0-9\.%\/?:&,\-_#="]*)'),
+        hintRegExp = null,
         textStyle = textStyle,
         postProcess = postProcess,
         contentMeta = null,
+        suggestions = null,
         onTap = urlOpener;
 
-  AdharaRichTextSpanConfig.hashTag(TextStyle textStyle, [StringCallbackFn postProcess]):
+  AdharaRichTextSpanConfig.hashTag(TextStyle textStyle, {
+    this.suggestions,
+    StringCallbackFn postProcess
+  }):
         type = TextSpanType.hashTag,
         regExp = RegExp(r'#[a-zA-Z0-9\/?.",:<>]*'),
+        hintRegExp = RegExp(r'#[a-zA-Z0-9\/?.",:<>]*'),
         textStyle = textStyle,
         postProcess = postProcess,
         contentMeta = null,
@@ -234,33 +243,41 @@ class AdharaRichTextSpanConfig{
   AdharaRichTextSpanConfig.bold(TextStyle textStyle, [StringCallbackFn postProcess]):
         type = TextSpanType.bold,
         regExp = RegExp(r'\*[a-zA-Z0-9\/?.",:<>_~`\s]*\*'),
+        hintRegExp = null,
         textStyle = textStyle.copyWith(fontWeight: FontWeight.bold),
         postProcess = postProcess ?? stripFirstAndLast,
         contentMeta = null,
+        suggestions = null,
         onTap = null;
 
   AdharaRichTextSpanConfig.italic(TextStyle textStyle, [StringCallbackFn postProcess]):
         type = TextSpanType.italic,
         regExp = RegExp(r'_[a-zA-Z0-9\/?.",:<>\*~`\s]*_'),
+        hintRegExp = null,
         textStyle = textStyle.copyWith(fontStyle: FontStyle.italic),
         postProcess = postProcess ?? stripFirstAndLast,
         contentMeta = null,
+        suggestions = null,
         onTap = null;
 
   AdharaRichTextSpanConfig.strikeThrough(TextStyle textStyle, [StringCallbackFn postProcess]):
         type = TextSpanType.strikeThrough,
         regExp = RegExp(r'~[a-zA-Z0-9\/?.",:<>\*_`\s]*~'),
+        hintRegExp = null,
         textStyle = textStyle.copyWith(decoration: TextDecoration.lineThrough),
         postProcess = postProcess ?? stripFirstAndLast,
         contentMeta = null,
+        suggestions = null,
         onTap = null;
 
   AdharaRichTextSpanConfig.code(TextStyle textStyle, [StringCallbackFn postProcess]):
         type = TextSpanType.code,
         regExp = RegExp(r'`[a-zA-Z0-9\/?.",:<>\*~_\s]*`'),
+        hintRegExp = null,
         textStyle = textStyle.copyWith(fontFamily: "Monospace"),
         postProcess = postProcess ?? stripFirstAndLast,
         contentMeta = null,
+        suggestions = null,
         onTap = null;
 
 }
@@ -286,6 +303,22 @@ class AdharaRichTextSpan{
           :null,
     );
   }
+
+}
+
+typedef String OnSuggestionInsert();
+
+class Suggestion{
+
+  Widget display;
+  dynamic data;
+  OnSuggestionInsert onInsert;
+
+  Suggestion({
+    this.display,
+    this.data,
+    this.onInsert
+  });
 
 }
 
