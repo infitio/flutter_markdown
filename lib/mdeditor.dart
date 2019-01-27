@@ -1,35 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:adhara_markdown/mdbean.dart';
 import 'package:adhara_markdown/mdviewer.dart';
+import 'package:adhara_markdown/utils.dart';
 
 
-class MarkDownEditor extends StatefulWidget {
+class MarkdownEditor extends StatefulWidget {
 
   final String value;
   final String hint;
   final Function onSaved;
   final Widget nonPositionedChild;
-  final List<AdharaRichTextSpanConfig> textSpanConfigs;
+  final List<MarkdownTokenConfig> textSpanConfigs;
+  final TextStyle textStyle;
+  final TextStyle highlightedTextStyle;
   final MarkDownBean bean;
 
-  MarkDownEditor({
+  MarkdownEditor({
     Key key,
     this.value,
     this.hint,
     this.onSaved,
     this.nonPositionedChild,
     this.textSpanConfigs,
+    this.textStyle,
+    this.highlightedTextStyle,
     MarkDownBean bean
   }) :
         bean = bean ?? MarkDownBean(),
         super(key: key);
 
   @override
-  _MarkDownEditorState createState() => _MarkDownEditorState();
+  _MarkdownEditorState createState() => _MarkdownEditorState();
 
 }
 
-class _MarkDownEditorState extends State<MarkDownEditor>{
+class _MarkdownEditorState extends State<MarkdownEditor>{
 
   String get tag => "AdharaTextField";
 
@@ -37,8 +42,8 @@ class _MarkDownEditorState extends State<MarkDownEditor>{
   ContentMeta contentMeta;
   int currentContentLength;
   Match match;
-  List<Suggestion> suggestions = [];
-  AdharaRichTextSpanConfig matchedSpanConfig;
+  List<TokenSuggestion> suggestions = [];
+  MarkdownTokenConfig matchedSpanConfig;
 
   TextStyle baseTextStyle = TextStyle(
     color:  const Color(0xff273d52),
@@ -70,7 +75,7 @@ class _MarkDownEditorState extends State<MarkDownEditor>{
         }else{
           int indexNow = textEditingController.selection.baseOffset-1;
           if(indexNow < 0) return;
-          for(AdharaRichTextSpanConfig spanConfig in widget.textSpanConfigs){
+          for(MarkdownTokenConfig spanConfig in widget.textSpanConfigs){
             if(spanConfig.hintRegExp!=null) {
               for (Match m in spanConfig.hintRegExp.allMatches(
                   textEditingController.text)) {
@@ -141,16 +146,16 @@ class _MarkDownEditorState extends State<MarkDownEditor>{
     stackList.insert(0, PositionedDirectional(
         child: Container(
           padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-          child: MarkDownViewer(
+          child: MarkdownViewer(
               content: textEditingController.text,
               meta: contentMeta,
               enableCollapse: false,
               textStyle: baseTextStyle.copyWith(color: const Color(0xff273d52)),
               highlightedTextStyle: baseTextStyle.copyWith(color: const Color(0xff006ce0)),
               formatTypes: [
-                TextSpanType.link,
-                TextSpanType.mention,
-                TextSpanType.hashTag
+                MarkdownTokenTypes.link,
+                MarkdownTokenTypes.mention,
+                MarkdownTokenTypes.hashTag
               ]
           ),
         )
@@ -186,7 +191,7 @@ class _MarkDownEditorState extends State<MarkDownEditor>{
               ),
               child: ListView(
                 shrinkWrap: true,
-                children: suggestions.map<Widget>((Suggestion suggestion){
+                children: suggestions.map<Widget>((TokenSuggestion suggestion){
                   return InkWell(
                     child: Builder(builder: (BuildContext context){
                       return suggestion.display;
