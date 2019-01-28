@@ -14,6 +14,8 @@ class MarkdownEditor extends StatefulWidget {
   final TextStyle highlightedTextStyle;
   final MarkDownBean bean;
   final MarkdownEditorController controller;
+  final InputDecoration decoration;
+  final FormFieldSetter<String> onChange;
 
 
   MarkdownEditor({
@@ -21,10 +23,12 @@ class MarkdownEditor extends StatefulWidget {
     this.value,
     this.hint,
     this.onSaved,
+    this.onChange,
     this.controller,
     this.tokenConfigs,
     this.textStyle,
     this.highlightedTextStyle,
+    this.decoration,
     MarkDownBean bean
   }) :
         bean = bean ?? MarkDownBean(),
@@ -36,8 +40,6 @@ class MarkdownEditor extends StatefulWidget {
 }
 
 class _MarkdownEditorState extends State<MarkdownEditor>{
-
-  String get tag => "AdharaTextField";
 
   TextEditingController textEditingController;
   int currentContentLength;
@@ -59,8 +61,8 @@ class _MarkdownEditorState extends State<MarkdownEditor>{
   @override
   void initState() {
     super.initState();
-    widget.controller?._state = this;
     textEditingController = TextEditingController(text: widget.value);
+    widget.controller?._state = this; //must be called after setting textEditingController
     currentContentLength = textEditingController.text.length;
     overlayState = Overlay.of(context);
     textEditingController.addListener(_listenTextInput);
@@ -74,6 +76,9 @@ class _MarkdownEditorState extends State<MarkdownEditor>{
     if(textEditingController != null){
         if(textEditingController.text.length < 1){
           suggestions = [];
+          for(MarkdownTokenConfig _tokenConfig in widget.tokenConfigs){
+            _tokenConfig.meta?.collection = [];
+          }
         }else{
           int indexNow = textEditingController.selection.baseOffset-1;
           if(indexNow < 0) return;
@@ -129,50 +134,52 @@ class _MarkdownEditorState extends State<MarkdownEditor>{
         setState(() {});
     }
     showSuggestions(context);
+    if(widget.onChange!=null) {
+      widget.onChange(textEditingController.text);
+    }
   }
+
+  InputDecoration get _decoration => widget.decoration ?? InputDecoration(
+    contentPadding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+    hintText: widget.hint,
+    hintStyle: baseTextStyle.copyWith(color: const Color(0x80273d52)),
+    border: InputBorder.none,
+  );
 
   @override
   Widget build(BuildContext context) {
-
-    List<Widget> stackList = [
-      //highlighted rich text
-      PositionedDirectional(
-          child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-            child: MarkdownViewer(
-              content: textEditingController.text,
-              collapsible: false,
-              textStyle: widget.textStyle,
-              highlightedTextStyle: widget.highlightedTextStyle,
-              tokenConfigs: widget.tokenConfigs,
-              /*formatTypes: [
+    return Stack(
+      key: _editorKey,
+      children: [
+        //highlighted rich text
+        PositionedDirectional(
+            child: Container(
+              padding: _decoration?.contentPadding,
+              child: MarkdownViewer(
+                content: textEditingController.text,
+                collapsible: false,
+                textStyle: widget.textStyle,
+                highlightedTextStyle: widget.highlightedTextStyle,
+                tokenConfigs: widget.tokenConfigs,
+                /*formatTypes: [
                 MarkdownTokenTypes.link,
                 MarkdownTokenTypes.mention,
                 MarkdownTokenTypes.hashTag
               ]*/
-            ),
-          )
-      ),
-      //Text input box
-      TextFormField(
-          controller: textEditingController,
-          autofocus: true,
-          keyboardType: TextInputType.multiline,
-          maxLines: null,
-          style: baseTextStyle.copyWith(color: const Color(0xff273d52).withOpacity(0.1)),
-          decoration: InputDecoration(
-            contentPadding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-            hintText: widget.hint,
-            hintStyle: baseTextStyle.copyWith(color: const Color(0x80273d52)),
-            border: InputBorder.none,
-          ),
-          onSaved: widget.onSaved
-      ),
-    ];
-
-    return Stack(
-      key: _editorKey,
-      children: stackList,
+              ),
+            )
+        ),
+        //Text input box
+        TextFormField(
+            controller: textEditingController,
+            autofocus: true,
+            keyboardType: TextInputType.multiline,
+            maxLines: null,
+            style: widget.textStyle.copyWith(color: Colors.grey.withOpacity(0.1)),  //TODO remove in production!
+            decoration: _decoration,
+            onSaved: widget.onSaved
+        ),
+      ],
     );
   }
 
@@ -186,9 +193,18 @@ class _MarkdownEditorState extends State<MarkdownEditor>{
       overlaySuggestions = null;
       return;
     }
+    double keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    double visibleHeight = MediaQuery.of(context).size.height - keyboardHeight;
+    double top = editorPosition.dy + editorSize.height;
+    double bottom;
+    if(top > visibleHeight/2){
+      top = null;
+      bottom = keyboardHeight + editorSize.height;
+    }
     overlaySuggestions = OverlayEntry(
       builder: (context) => Positioned(
-        top: editorPosition.dy + editorSize.height,
+        top: top,
+        bottom: bottom,
         child: _getStackForSuggestions(context),
       )
     );
@@ -254,6 +270,12 @@ class _MarkdownEditorState extends State<MarkdownEditor>{
     );
   }
 
+  triggerSave(){
+    if(widget.onSaved!=null) {
+      widget.onSaved(textEditingController.text);
+    }
+  }
+
   @override
   void dispose() {
     textEditingController.dispose();
@@ -264,8 +286,33 @@ class _MarkdownEditorState extends State<MarkdownEditor>{
 
 class MarkdownEditorController{
 
-  _MarkdownEditorState _state;
+  _MarkdownEditorState __state;
+  List<VoidCallback> listeners = [];
 
-  String get content => _state.textEditingController.text;
+  set _state(_MarkdownEditorState state){
+    __state = state;
+    updateListeners();
+  }
+  _MarkdownEditorState get _state => __state;
+
+  TextEditingController get controller => _state?.textEditingController;
+  String get text => _state?.textEditingController?.text;
+
+  triggerSave(){
+    _state?.triggerSave();
+  }
+
+  updateListeners(){
+    if(controller == null) return;
+    for(VoidCallback listener in listeners){
+      controller.addListener(listener);
+    }
+    listeners = [];
+  }
+
+  addListener(VoidCallback listener){
+    listeners.add(listener);
+    updateListeners();
+  }
 
 }
