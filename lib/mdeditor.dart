@@ -70,77 +70,6 @@ class _MarkdownEditorState extends State<MarkdownEditor>{
 //    focusNode = FocusNode()..addListener(_listenTextInput);
   }
 
-  _listenTextInput() async {
-    setState((){
-      suggestions = [];
-      match = null;
-    });
-    if(textEditingController != null){
-        if(textEditingController.text.length < 1){
-          suggestions = [];
-          for(MarkdownTokenConfig _tokenConfig in widget.tokenConfigs){
-            _tokenConfig.meta?.collection = [];
-          }
-        }else{
-          int indexNow = textEditingController.selection.baseOffset-1;
-          if(indexNow < 0) return;
-          for(MarkdownTokenConfig _tokenConfig in widget.tokenConfigs){
-            if(_tokenConfig.hintRegExp!=null) {
-              for (Match m in _tokenConfig.hintRegExp.allMatches(
-                  textEditingController.text)) {
-                if (m.start < indexNow && m.end >= indexNow) {
-                  suggestions = await _tokenConfig.suggestions(textEditingController.text.substring(m.start, indexNow));
-                  match = m;
-                  tokenConfig = _tokenConfig;
-                }
-              }
-            }
-          }
-          // postMeta index update
-          if(suggestions.isNotEmpty) {
-            int textLength = textEditingController.text.length;
-            if (currentContentLength != textEditingController.text.length) {
-              for(MarkdownTokenConfig _tokenConfig in widget.tokenConfigs){
-                if(_tokenConfig.meta != null){
-                  _tokenConfig.meta.collection.forEach((SelectionInfo info) {
-                    if (textLength > currentContentLength) {
-                      if (info.startIndex <=
-                          indexNow - (textLength - currentContentLength) &&
-                          indexNow - (textLength - currentContentLength) <
-                              info.endIndex) {
-                        _tokenConfig.meta.collection.remove(info);
-                      }
-                      else if (info.startIndex >
-                          indexNow - (textLength - currentContentLength)) {
-                        info.updateIndex(
-                            info.startIndex + (textLength - currentContentLength));
-                      }
-                    }
-                    else {
-                      if (info.startIndex - 1 <= indexNow &&
-                          indexNow < info.endIndex) {
-                        _tokenConfig.meta.collection.remove(info);
-                      }
-                      else if (info.startIndex - 1 > indexNow) {
-                        info.updateIndex(
-                            info.startIndex - (currentContentLength - textLength));
-                      }
-                    }
-                  });
-                }
-              }
-            }
-          }
-        }
-        currentContentLength = textEditingController.text.length;
-        setState(() {});
-    }
-    showSuggestions(context);
-    if(widget.onChange!=null) {
-      widget.onChange(textEditingController.text);
-    }
-  }
-
   InputDecoration get _decoration => widget.decoration ?? InputDecoration(
     contentPadding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
     hintText: widget.hint,
@@ -191,6 +120,77 @@ class _MarkdownEditorState extends State<MarkdownEditor>{
         ),
       ],
     );
+  }
+
+  _listenTextInput() async {
+    setState((){
+      suggestions = [];
+      match = null;
+    });
+    if(textEditingController != null){
+      if(textEditingController.text.length < 1){
+        suggestions = [];
+        for(MarkdownTokenConfig _tokenConfig in widget.tokenConfigs){
+          _tokenConfig.meta?.collection = [];
+        }
+      }else{
+        int indexNow = textEditingController.selection.baseOffset-1;
+        if(indexNow < 0) return;
+        for(MarkdownTokenConfig _tokenConfig in widget.tokenConfigs){
+          if(_tokenConfig.hintRegExp!=null) {
+            for (Match m in _tokenConfig.hintRegExp.allMatches(
+                textEditingController.text)) {
+              if (m.start < indexNow && m.end >= indexNow) {
+                suggestions = await _tokenConfig.suggestions(textEditingController.text.substring(m.start, indexNow));
+                match = m;
+                tokenConfig = _tokenConfig;
+              }
+            }
+          }
+        }
+        // postMeta index update
+        if(suggestions.isNotEmpty) {
+          int textLength = textEditingController.text.length;
+          if (currentContentLength != textEditingController.text.length) {
+            for(MarkdownTokenConfig _tokenConfig in widget.tokenConfigs){
+              if(_tokenConfig.meta != null){
+                _tokenConfig.meta.collection.forEach((SelectionInfo info) {
+                  if (textLength > currentContentLength) {
+                    if (info.startIndex <=
+                        indexNow - (textLength - currentContentLength) &&
+                        indexNow - (textLength - currentContentLength) <
+                            info.endIndex) {
+                      _tokenConfig.meta.collection.remove(info);
+                    }
+                    else if (info.startIndex >
+                        indexNow - (textLength - currentContentLength)) {
+                      info.updateIndex(
+                          info.startIndex + (textLength - currentContentLength));
+                    }
+                  }
+                  else {
+                    if (info.startIndex - 1 <= indexNow &&
+                        indexNow < info.endIndex) {
+                      _tokenConfig.meta.collection.remove(info);
+                    }
+                    else if (info.startIndex - 1 > indexNow) {
+                      info.updateIndex(
+                          info.startIndex - (currentContentLength - textLength));
+                    }
+                  }
+                });
+              }
+            }
+          }
+        }
+      }
+      currentContentLength = textEditingController.text.length;
+      setState(() {});
+    }
+    showSuggestions(context);
+    if(widget.onChange!=null) {
+      widget.onChange(textEditingController.text);
+    }
   }
 
   OverlayEntry overlaySuggestions;
