@@ -148,13 +148,19 @@ class _MarkdownEditorState extends State<MarkdownEditor>{
 
   @override
   Widget build(BuildContext context) {
+    double topOffset = _decoration.labelStyle?.fontSize ?? 0.0;
+    if(_decoration.hintStyle!=null){
+      topOffset += _decoration.hintStyle.fontSize - widget.textStyle.fontSize;
+    }
     return Stack(
       key: _editorKey,
       children: [
         //highlighted rich text
         PositionedDirectional(
             child: Container(
-              padding: _decoration?.contentPadding,
+              padding: _decoration.contentPadding?.add(
+                  EdgeInsets.only(top: topOffset)
+              ),
               child: MarkdownViewer(
                 content: textEditingController.text,
                 collapsible: false,
@@ -175,7 +181,8 @@ class _MarkdownEditorState extends State<MarkdownEditor>{
             autofocus: true,
             keyboardType: TextInputType.multiline,
             maxLines: null,
-            style: widget.textStyle.copyWith(color: Colors.grey.withOpacity(0.1)),  //TODO remove in production!
+            style: widget.textStyle.copyWith(color: Colors.transparent),  //TODO remove in production!
+//            style: widget.textStyle.copyWith(color: Colors.grey.withOpacity(0.01)),  //TODO remove in production!
             decoration: _decoration,
             onSaved: widget.onSaved
         ),
