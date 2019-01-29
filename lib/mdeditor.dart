@@ -181,8 +181,8 @@ class _MarkdownEditorState extends State<MarkdownEditor>{
             autofocus: true,
             keyboardType: TextInputType.multiline,
             maxLines: null,
-            style: widget.textStyle.copyWith(color: Colors.transparent),  //TODO remove in production!
-//            style: widget.textStyle.copyWith(color: Colors.grey.withOpacity(0.01)),  //TODO remove in production!
+            style: widget.textStyle.copyWith(color: Colors.transparent),
+//            style: widget.textStyle.copyWith(color: Colors.grey.withOpacity(0.1)),
             decoration: _decoration,
             onSaved: widget.onSaved
         ),
