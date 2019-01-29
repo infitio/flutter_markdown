@@ -42,6 +42,7 @@ class MarkdownEditor extends StatefulWidget {
 class _MarkdownEditorState extends State<MarkdownEditor>{
 
   TextEditingController textEditingController;
+  FocusNode focusNode;
   int currentContentLength;
   Match match;
   List<TokenSuggestion> suggestions = [];
@@ -66,6 +67,7 @@ class _MarkdownEditorState extends State<MarkdownEditor>{
     currentContentLength = textEditingController.text.length;
     overlayState = Overlay.of(context);
     textEditingController.addListener(_listenTextInput);
+//    focusNode = FocusNode()..addListener(_listenTextInput);
   }
 
   _listenTextInput() async {
@@ -178,6 +180,7 @@ class _MarkdownEditorState extends State<MarkdownEditor>{
         //Text input box
         TextFormField(
             controller: textEditingController,
+            focusNode: focusNode,
             autofocus: true,
             keyboardType: TextInputType.multiline,
             maxLines: null,
