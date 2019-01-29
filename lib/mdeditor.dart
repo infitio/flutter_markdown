@@ -87,7 +87,7 @@ class _MarkdownEditorState extends State<MarkdownEditor>{
               for (Match m in _tokenConfig.hintRegExp.allMatches(
                   textEditingController.text)) {
                 if (m.start < indexNow && m.end >= indexNow) {
-                  suggestions = await _tokenConfig.suggestions(m.group(0));
+                  suggestions = await _tokenConfig.suggestions(textEditingController.text.substring(m.start, indexNow));
                   match = m;
                   tokenConfig = _tokenConfig;
                 }

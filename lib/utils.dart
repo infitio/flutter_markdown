@@ -30,6 +30,7 @@ void urlOpener(MarkdownToken span) async {
 
 String stripFirstAndLast(String text) => text.substring(1, text.length-1);
 
+String _baseCharacters = r'a-zA-Z0-9\/?.",:<>' + r"'";
 
 class MarkdownTokenConfig{
 
@@ -82,8 +83,8 @@ class MarkdownTokenConfig{
     this.onTap
   }):
         type = MarkdownTokenTypes.hashTag,
-        regExp = RegExp(r'#[a-zA-Z0-9\/?.",:<>]+'),
-        hintRegExp = RegExp(r'#[a-zA-Z0-9\/?.",:<>\-]*'),
+        regExp = RegExp(r'#['+ _baseCharacters +']+'),
+        hintRegExp = RegExp(r'#['+ _baseCharacters +'\-]*'),
         meta = null;
 
   MarkdownTokenConfig.bold({
@@ -91,7 +92,7 @@ class MarkdownTokenConfig{
     StringCallbackFn postProcess
   }):
         type = MarkdownTokenTypes.bold,
-        regExp = RegExp(r'\*[a-zA-Z0-9\/?.",:<>_~`\-\s]*\*'),
+        regExp = RegExp(r'\*['+_baseCharacters+r'_~`\-\s]*\*'),
         hintRegExp = null,
         textStyle = textStyle.copyWith(fontWeight: FontWeight.bold),
         postProcess = postProcess ?? stripFirstAndLast,
@@ -104,7 +105,7 @@ class MarkdownTokenConfig{
     StringCallbackFn postProcess
   }):
         type = MarkdownTokenTypes.italic,
-        regExp = RegExp(r'_[a-zA-Z0-9\/?.",:<>~`\-\*\s]*_'),
+        regExp = RegExp(r'_['+ _baseCharacters + r'~`\-\*\s]*_'),
         hintRegExp = null,
         textStyle = textStyle.copyWith(fontStyle: FontStyle.italic),
         postProcess = postProcess ?? stripFirstAndLast,
@@ -117,7 +118,7 @@ class MarkdownTokenConfig{
     StringCallbackFn postProcess
   }):
         type = MarkdownTokenTypes.strikeThrough,
-        regExp = RegExp(r'~[a-zA-Z0-9\/?.",:<>_`\-\*\s]*~'),
+        regExp = RegExp(r'~['+ _baseCharacters + r'_`\-\*\s]*~'),
         hintRegExp = null,
         textStyle = textStyle.copyWith(decoration: TextDecoration.lineThrough),
         postProcess = postProcess ?? stripFirstAndLast,
@@ -130,7 +131,7 @@ class MarkdownTokenConfig{
     StringCallbackFn postProcess
   }):
         type = MarkdownTokenTypes.code,
-        regExp = RegExp(r'`[a-zA-Z0-9\/?.",:<>~_\-\*\s]*`'),
+        regExp = RegExp(r'`['+ _baseCharacters + r'~_\-\*\s]*`'),
         hintRegExp = null,
         textStyle = textStyle.copyWith(fontFamily: "Monospace"),
         postProcess = postProcess ?? stripFirstAndLast,
