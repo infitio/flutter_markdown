@@ -16,6 +16,8 @@ class MarkdownEditor extends StatefulWidget {
   final MarkdownEditorController controller;
   final InputDecoration decoration;
   final FormFieldSetter<String> onChange;
+  final BoxConstraints suggestionsConstraints;
+  final Offset suggestionsOffset;
 
 
   MarkdownEditor({
@@ -29,6 +31,8 @@ class MarkdownEditor extends StatefulWidget {
     this.textStyle,
     this.highlightedTextStyle,
     this.decoration,
+    this.suggestionsConstraints,
+    this.suggestionsOffset: Offset.zero,
     MarkDownBean bean
   }) :
         bean = bean ?? MarkDownBean(),
@@ -39,10 +43,9 @@ class MarkdownEditor extends StatefulWidget {
 
 }
 
-class _MarkdownEditorState extends State<MarkdownEditor>{
+class _MarkdownEditorState extends State<MarkdownEditor> with WidgetsBindingObserver {
 
   TextEditingController textEditingController;
-  FocusNode focusNode;
   int currentContentLength;
   Match match;
   List<TokenSuggestion> suggestions = [];
@@ -63,11 +66,11 @@ class _MarkdownEditorState extends State<MarkdownEditor>{
   void initState() {
     super.initState();
     textEditingController = TextEditingController(text: widget.value);
+    WidgetsBinding.instance.addObserver(this);
     widget.controller?._state = this; //must be called after setting textEditingController
     currentContentLength = textEditingController.text.length;
     overlayState = Overlay.of(context);
     textEditingController.addListener(_listenTextInput);
-//    focusNode = FocusNode()..addListener(_listenTextInput);
   }
 
   InputDecoration get _decoration => widget.decoration ?? InputDecoration(
@@ -109,7 +112,6 @@ class _MarkdownEditorState extends State<MarkdownEditor>{
         //Text input box
         TextFormField(
             controller: textEditingController,
-            focusNode: focusNode,
             autofocus: true,
             keyboardType: TextInputType.multiline,
             maxLines: null,
@@ -120,6 +122,11 @@ class _MarkdownEditorState extends State<MarkdownEditor>{
         ),
       ],
     );
+  }
+
+  @override
+  void didChangeMetrics() {
+    _listenTextInput();
   }
 
   _listenTextInput() async {
@@ -195,86 +202,89 @@ class _MarkdownEditorState extends State<MarkdownEditor>{
 
   OverlayEntry overlaySuggestions;
   showSuggestions(BuildContext context) async {
+    clearSuggestions();
+    if(suggestions.length==0) return;
     final RenderBox renderBoxRed = _editorKey.currentContext.findRenderObject();
     final editorSize = renderBoxRed.size;
     final editorPosition = renderBoxRed.localToGlobal(Offset.zero);
-    if(suggestions.length==0){
-      overlaySuggestions?.remove();
-      overlaySuggestions = null;
-      return;
-    }
     double keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
     double visibleHeight = MediaQuery.of(context).size.height - keyboardHeight;
-    double top = editorPosition.dy + editorSize.height;
+    Offset suggestionOffset = widget.suggestionsOffset ?? Offset.zero;
+    double top = editorPosition.dy + editorSize.height + suggestionOffset.dy;
     double bottom;
     if(top > visibleHeight/2){
       top = null;
-      bottom = keyboardHeight + editorSize.height;
+      bottom = keyboardHeight + editorSize.height + widget.suggestionsOffset.dy;
     }
+    print("top $top bottom $bottom editorPosition.dy ${editorPosition.dy} visibleHeight $visibleHeight");
     overlaySuggestions = OverlayEntry(
-      builder: (context) => Positioned(
-        top: top,
-        bottom: bottom,
-        child: _getStackForSuggestions(context),
-      )
+        builder: (context) => Positioned(
+          top: top,
+          bottom: bottom,
+          left: suggestionOffset.dx,
+          child: _buildSuggestions(context),
+        )
     );
     overlayState.insert(overlaySuggestions);
   }
 
-  Widget _getStackForSuggestions(BuildContext context){
+  clearSuggestions(){
+    overlaySuggestions?.remove();
+    overlaySuggestions = null;
+  }
+
+  Widget _buildSuggestions(BuildContext context){
     if(suggestions.isNotEmpty) {
       return Material(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: MediaQuery
-              .of(context)
-              .size
-              .width, maxHeight: 400.0),
-          child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16.0),
-            decoration: BoxDecoration(
-                color: Colors.white,
-//                border: Border.all(color: Theme.of(context).primaryColorLight),
-                border: Border.all(color: const Color(0x32273d52)),
-                borderRadius: BorderRadius.circular(4.0)
-            ),
-            child: _buildSuggestions(),
+          child: ConstrainedBox(
+              constraints: widget.suggestionsConstraints ?? BoxConstraints(
+                  maxWidth: MediaQuery.of(context).size.width,
+                  maxHeight: 400.0
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                    color: Colors.transparent,
+                    border: Border.all(color: const Color(0x32273d52)),
+                    borderRadius: BorderRadius.circular(4.0)
+                ),
+                child: _buildSuggestionsList(),
+              )
           )
-        )
       );
     }
     return Container();
   }
 
-  ListView _buildSuggestions(){
+  ListView _buildSuggestionsList(){
     return ListView(
       padding: EdgeInsets.zero,
       shrinkWrap: true,
       children: suggestions.map<Widget>((TokenSuggestion suggestion) {
         return InkWell(
-          child: Builder(builder: (BuildContext context) {
-            return suggestion.display;
-          }),
-          onTap: () {
-            int indexNow = textEditingController.selection.baseOffset;
-            int indexAt = match.start;
-            String addToInput = suggestion.onInsert();
-            int offSet = indexAt + 1;
-            textEditingController.text =
-                textEditingController.text.substring(0, indexAt) + addToInput
-                    + textEditingController.text.substring(indexNow);
-            offSet = offSet + addToInput.length;
-            textEditingController.selection = TextSelection(
-                baseOffset: textEditingController.selection.baseOffset + offSet,
-                extentOffset: textEditingController.selection.extentOffset +
-                    offSet
-            );
-            if (tokenConfig.meta != null) {
-              tokenConfig.meta.collection.add(SelectionInfo(
-                  indexAt, indexAt + addToInput.length - 1,
-                  suggestion.data));
+            child: Builder(builder: (BuildContext context) {
+              return suggestion.display;
+            }),
+            onTap: () {
+              int indexNow = textEditingController.selection.baseOffset;
+              int indexAt = match.start;
+              String addToInput = suggestion.onInsert();
+              int offSet = indexAt + 1;
+              textEditingController.text =
+                  textEditingController.text.substring(0, indexAt) + addToInput
+                      + textEditingController.text.substring(indexNow);
+              offSet = offSet + addToInput.length;
+              textEditingController.selection = TextSelection(
+                  baseOffset: textEditingController.selection.baseOffset + offSet,
+                  extentOffset: textEditingController.selection.extentOffset +
+                      offSet
+              );
+              if (tokenConfig.meta != null) {
+                tokenConfig.meta.collection.add(SelectionInfo(
+                    indexAt, indexAt + addToInput.length - 1,
+                    suggestion.data));
+              }
+              setState(() {});
             }
-            setState(() {});
-          }
         );
       }).toList(),
     );
@@ -289,6 +299,8 @@ class _MarkdownEditorState extends State<MarkdownEditor>{
   @override
   void dispose() {
     textEditingController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
+    clearSuggestions();
     super.dispose();
   }
 
