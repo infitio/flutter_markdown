@@ -86,28 +86,29 @@ class _MarkdownEditorState extends State<MarkdownEditor> with WidgetsBindingObse
     if(_decoration.hintStyle!=null){
       topOffset += _decoration.hintStyle.fontSize - widget.textStyle.fontSize;
     }
+    /*if(_decoration.contentPadding!=null){
+      topOffset += _decoration.contentPadding.vertical/2;
+    }*/
     return Stack(
       key: _editorKey,
       children: [
         //highlighted rich text
-        PositionedDirectional(
-            child: Container(
-              padding: _decoration.contentPadding?.add(
-                  EdgeInsets.only(top: topOffset)
-              ),
-              child: MarkdownViewer(
-                content: textEditingController.text,
-                collapsible: false,
-                textStyle: widget.textStyle,
-                highlightedTextStyle: widget.highlightedTextStyle,
-                tokenConfigs: widget.tokenConfigs,
-                /*formatTypes: [
+        Container(
+          padding: _decoration.contentPadding?.add(
+              EdgeInsets.only(top: topOffset)
+          ),
+          child: MarkdownViewer(
+            content: textEditingController.text,
+            collapsible: false,
+            textStyle: widget.textStyle,
+            highlightedTextStyle: widget.highlightedTextStyle,
+            tokenConfigs: widget.tokenConfigs,
+            /*formatTypes: [
                 MarkdownTokenTypes.link,
                 MarkdownTokenTypes.mention,
                 MarkdownTokenTypes.hashTag
               ]*/
-              ),
-            )
+          ),
         ),
         //Text input box
         TextFormField(
@@ -147,12 +148,16 @@ class _MarkdownEditorState extends State<MarkdownEditor> with WidgetsBindingObse
           if(_tokenConfig.hintRegExp!=null) {
             for (Match m in _tokenConfig.hintRegExp.allMatches(
                 textEditingController.text)) {
-              if (m.start < indexNow && m.end >= indexNow) {
-                suggestions = await _tokenConfig.suggestions(textEditingController.text.substring(m.start, indexNow));
+              if (m.start < indexNow+1 && m.end >= indexNow+1) {
+                suggestions = await _tokenConfig.suggestions(
+                    textEditingController.text.substring(m.start, indexNow+1)
+                );
                 match = m;
                 tokenConfig = _tokenConfig;
+                break;
               }
             }
+            if(match != null) break;
           }
         }
         // postMeta index update
@@ -214,7 +219,7 @@ class _MarkdownEditorState extends State<MarkdownEditor> with WidgetsBindingObse
     double bottom;
     if(top > visibleHeight/2){
       top = null;
-      bottom = keyboardHeight + editorSize.height + widget.suggestionsOffset.dy;
+      bottom = keyboardHeight + editorSize.height + suggestionOffset.dy;
     }
     print("top $top bottom $bottom editorPosition.dy ${editorPosition.dy} visibleHeight $visibleHeight");
     overlaySuggestions = OverlayEntry(

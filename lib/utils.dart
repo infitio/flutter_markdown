@@ -62,8 +62,8 @@ class MarkdownTokenConfig{
     this.suggestions
   }):
         type = MarkdownTokenTypes.mention,
-        regExp = RegExp(r'@[0-9a-zA-Z.\\s]+'),
-        hintRegExp = RegExp(r"@[0-9a-zA-Z.\\s]*");
+        regExp = RegExp(r'@[0-9a-zA-Z.\s]+'),
+        hintRegExp = RegExp(r"@[0-9a-zA-Z.\s]*");
 
   MarkdownTokenConfig.link({
     this.textStyle,
