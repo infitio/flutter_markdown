@@ -161,37 +161,37 @@ class _MarkdownEditorState extends State<MarkdownEditor> with WidgetsBindingObse
           }
         }
         // postMeta index update
-        if(suggestions.isNotEmpty) {
-          int textLength = textEditingController.text.length;
-          if (currentContentLength != textEditingController.text.length) {
-            for(MarkdownTokenConfig _tokenConfig in widget.tokenConfigs){
-              if(_tokenConfig.meta != null){
-                _tokenConfig.meta.collection.forEach((SelectionInfo info) {
-                  if (textLength > currentContentLength) {
-                    if (info.startIndex <=
-                        indexNow - (textLength - currentContentLength) &&
-                        indexNow - (textLength - currentContentLength) <
-                            info.endIndex) {
-                      _tokenConfig.meta.collection.remove(info);
-                    }
-                    else if (info.startIndex >
-                        indexNow - (textLength - currentContentLength)) {
-                      info.updateIndex(
-                          info.startIndex + (textLength - currentContentLength));
-                    }
+        int textLength = textEditingController.text.length;
+        if (currentContentLength != textEditingController.text.length) {
+          for(MarkdownTokenConfig _tokenConfig in widget.tokenConfigs){
+            if(_tokenConfig.meta != null){
+              _tokenConfig.meta.collection.forEach((SelectionInfo info) {
+                if (textLength > currentContentLength) {
+                  if (info.startIndex <=
+                      indexNow - (textLength - currentContentLength) &&
+                      indexNow - (textLength - currentContentLength) <
+                          info.endIndex) {
+                    _tokenConfig.meta.collection = _tokenConfig.meta.collection
+                        .where((selectionInfo) => selectionInfo != info).toList();
                   }
-                  else {
-                    if (info.startIndex - 1 <= indexNow &&
-                        indexNow < info.endIndex) {
-                      _tokenConfig.meta.collection.remove(info);
-                    }
-                    else if (info.startIndex - 1 > indexNow) {
-                      info.updateIndex(
-                          info.startIndex - (currentContentLength - textLength));
-                    }
+                  else if (info.startIndex >
+                      indexNow - (textLength - currentContentLength)) {
+                    info.updateIndex(
+                        info.startIndex + (textLength - currentContentLength));
                   }
-                });
-              }
+                }
+                else {
+                  if (info.startIndex - 1 <= indexNow &&
+                      indexNow < info.endIndex) {
+                    _tokenConfig.meta.collection = _tokenConfig.meta.collection
+                        .where((selectionInfo) => selectionInfo != info).toList();
+                  }
+                  else if (info.startIndex - 1 > indexNow) {
+                    info.updateIndex(
+                        info.startIndex - (currentContentLength - textLength));
+                  }
+                }
+              });
             }
           }
         }
