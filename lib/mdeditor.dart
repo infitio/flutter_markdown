@@ -3,9 +3,7 @@ import 'package:adhara_markdown/mdbean.dart';
 import 'package:adhara_markdown/mdviewer.dart';
 import 'package:adhara_markdown/utils.dart';
 
-
 class MarkdownEditor extends StatefulWidget {
-
   final String value;
   final String hint;
   final bool autoFocus;
@@ -20,33 +18,30 @@ class MarkdownEditor extends StatefulWidget {
   final BoxConstraints suggestionsConstraints;
   final Offset suggestionsOffset;
 
-
-  MarkdownEditor({
-    Key key,
-    this.value,
-    this.hint,
-    this.autoFocus,
-    this.onSaved,
-    this.onChange,
-    this.controller,
-    this.tokenConfigs,
-    this.textStyle,
-    this.highlightedTextStyle,
-    this.decoration,
-    this.suggestionsConstraints,
-    this.suggestionsOffset: Offset.zero,
-    MarkDownBean bean
-  }) :
-        bean = bean ?? MarkDownBean(),
+  MarkdownEditor(
+      {Key key,
+      this.value,
+      this.hint,
+      this.autoFocus,
+      this.onSaved,
+      this.onChange,
+      this.controller,
+      this.tokenConfigs,
+      this.textStyle,
+      this.highlightedTextStyle,
+      this.decoration,
+      this.suggestionsConstraints,
+      this.suggestionsOffset: Offset.zero,
+      MarkDownBean bean})
+      : bean = bean ?? MarkDownBean(),
         super(key: key);
 
   @override
   _MarkdownEditorState createState() => _MarkdownEditorState();
-
 }
 
-class _MarkdownEditorState extends State<MarkdownEditor> with WidgetsBindingObserver {
-
+class _MarkdownEditorState extends State<MarkdownEditor>
+    with WidgetsBindingObserver {
   TextEditingController textEditingController;
   int currentContentLength;
   Match match;
@@ -54,10 +49,10 @@ class _MarkdownEditorState extends State<MarkdownEditor> with WidgetsBindingObse
   MarkdownTokenConfig tokenConfig;
 
   TextStyle baseTextStyle = TextStyle(
-    color:  const Color(0xff273d52),
+    color: const Color(0xff273d52),
     fontWeight: FontWeight.w400,
     fontFamily: "SFProText",
-    fontStyle:  FontStyle.normal,
+    fontStyle: FontStyle.normal,
     fontSize: 14.0,
   );
 
@@ -69,23 +64,26 @@ class _MarkdownEditorState extends State<MarkdownEditor> with WidgetsBindingObse
     super.initState();
     textEditingController = TextEditingController(text: widget.value);
     WidgetsBinding.instance.addObserver(this);
-    widget.controller?._state = this; //must be called after setting textEditingController
+    widget.controller?._state =
+        this; //must be called after setting textEditingController
     currentContentLength = textEditingController.text.length;
     overlayState = Overlay.of(context);
     textEditingController.addListener(_listenTextInput);
   }
 
-  InputDecoration get _decoration => widget.decoration ?? InputDecoration(
-    contentPadding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-    hintText: widget.hint,
-    hintStyle: baseTextStyle.copyWith(color: const Color(0x80273d52)),
-    border: InputBorder.none,
-  );
+  InputDecoration get _decoration =>
+      widget.decoration ??
+      InputDecoration(
+        contentPadding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+        hintText: widget.hint,
+        hintStyle: baseTextStyle.copyWith(color: const Color(0x80273d52)),
+        border: InputBorder.none,
+      );
 
   @override
   Widget build(BuildContext context) {
     double topOffset = _decoration.labelStyle?.fontSize ?? 0.0;
-    if(_decoration.hintStyle!=null){
+    if (_decoration.hintStyle != null) {
       topOffset += _decoration.hintStyle.fontSize - widget.textStyle.fontSize;
     }
     /*if(_decoration.contentPadding!=null){
@@ -96,9 +94,8 @@ class _MarkdownEditorState extends State<MarkdownEditor> with WidgetsBindingObse
       children: [
         //highlighted rich text
         Container(
-          padding: _decoration.contentPadding?.add(
-              EdgeInsets.only(top: topOffset)
-          ),
+          padding:
+              _decoration.contentPadding?.add(EdgeInsets.only(top: topOffset)),
           child: MarkdownViewer(
             content: textEditingController.text,
             collapsible: false,
@@ -115,14 +112,13 @@ class _MarkdownEditorState extends State<MarkdownEditor> with WidgetsBindingObse
         //Text input box
         TextFormField(
             controller: textEditingController,
-            autofocus: widget.autoFocus??true,
+            autofocus: widget.autoFocus ?? true,
             keyboardType: TextInputType.multiline,
             maxLines: null,
             style: widget.textStyle.copyWith(color: Colors.transparent),
 //            style: widget.textStyle.copyWith(color: Colors.grey.withOpacity(0.1)),
             decoration: _decoration,
-            onSaved: widget.onSaved
-        ),
+            onSaved: widget.onSaved),
       ],
     );
   }
@@ -133,62 +129,61 @@ class _MarkdownEditorState extends State<MarkdownEditor> with WidgetsBindingObse
   }
 
   _listenTextInput() async {
-    setState((){
+    setState(() {
       suggestions = [];
       match = null;
     });
-    if(textEditingController != null){
-      if(textEditingController.text.length < 1){
+    if (textEditingController != null) {
+      if (textEditingController.text.length < 1) {
         suggestions = [];
-        for(MarkdownTokenConfig _tokenConfig in widget.tokenConfigs){
+        for (MarkdownTokenConfig _tokenConfig in widget.tokenConfigs) {
           _tokenConfig.meta?.collection = [];
         }
-      }else{
-        int indexNow = textEditingController.selection.baseOffset-1;
-        if(indexNow < 0) return;
-        for(MarkdownTokenConfig _tokenConfig in widget.tokenConfigs){
-          if(_tokenConfig.hintRegExp!=null) {
-            for (Match m in _tokenConfig.hintRegExp.allMatches(
-                textEditingController.text)) {
-              if (m.start < indexNow+1 && m.end >= indexNow+1) {
+      } else {
+        int indexNow = textEditingController.selection.baseOffset - 1;
+        if (indexNow < 0) return;
+        for (MarkdownTokenConfig _tokenConfig in widget.tokenConfigs) {
+          if (_tokenConfig.hintRegExp != null) {
+            for (Match m in _tokenConfig.hintRegExp
+                .allMatches(textEditingController.text)) {
+              if (m.start < indexNow + 1 && m.end >= indexNow + 1) {
                 suggestions = await _tokenConfig.suggestions(
-                    textEditingController.text.substring(m.start, indexNow+1)
-                );
+                    textEditingController.text
+                        .substring(m.start, indexNow + 1));
                 match = m;
                 tokenConfig = _tokenConfig;
                 break;
               }
             }
-            if(match != null) break;
+            if (match != null) break;
           }
         }
         // postMeta index update
         int textLength = textEditingController.text.length;
         if (currentContentLength != textEditingController.text.length) {
-          for(MarkdownTokenConfig _tokenConfig in widget.tokenConfigs){
-            if(_tokenConfig.meta != null){
+          for (MarkdownTokenConfig _tokenConfig in widget.tokenConfigs) {
+            if (_tokenConfig.meta != null) {
               _tokenConfig.meta.collection.forEach((SelectionInfo info) {
                 if (textLength > currentContentLength) {
                   if (info.startIndex <=
-                      indexNow - (textLength - currentContentLength) &&
+                          indexNow - (textLength - currentContentLength) &&
                       indexNow - (textLength - currentContentLength) <
                           info.endIndex) {
                     _tokenConfig.meta.collection = _tokenConfig.meta.collection
-                        .where((selectionInfo) => selectionInfo != info).toList();
-                  }
-                  else if (info.startIndex >
+                        .where((selectionInfo) => selectionInfo != info)
+                        .toList();
+                  } else if (info.startIndex >
                       indexNow - (textLength - currentContentLength)) {
                     info.updateIndex(
                         info.startIndex + (textLength - currentContentLength));
                   }
-                }
-                else {
+                } else {
                   if (info.startIndex - 1 <= indexNow &&
                       indexNow < info.endIndex) {
                     _tokenConfig.meta.collection = _tokenConfig.meta.collection
-                        .where((selectionInfo) => selectionInfo != info).toList();
-                  }
-                  else if (info.startIndex - 1 > indexNow) {
+                        .where((selectionInfo) => selectionInfo != info)
+                        .toList();
+                  } else if (info.startIndex - 1 > indexNow) {
                     info.updateIndex(
                         info.startIndex - (currentContentLength - textLength));
                   }
@@ -202,7 +197,7 @@ class _MarkdownEditorState extends State<MarkdownEditor> with WidgetsBindingObse
       setState(() {});
     }
     showSuggestions(context);
-    if(widget.onChange!=null) {
+    if (widget.onChange != null) {
       widget.onChange(textEditingController.text);
     }
   }
@@ -210,7 +205,7 @@ class _MarkdownEditorState extends State<MarkdownEditor> with WidgetsBindingObse
   OverlayEntry overlaySuggestions;
   showSuggestions(BuildContext context) async {
     clearSuggestions();
-    if(suggestions.length==0) return;
+    if (suggestions.length == 0) return;
     final RenderBox renderBoxRed = _editorKey.currentContext.findRenderObject();
     final editorSize = renderBoxRed.size;
     final editorPosition = renderBoxRed.localToGlobal(Offset.zero);
@@ -219,86 +214,79 @@ class _MarkdownEditorState extends State<MarkdownEditor> with WidgetsBindingObse
     Offset suggestionOffset = widget.suggestionsOffset ?? Offset.zero;
     double top = editorPosition.dy + editorSize.height + suggestionOffset.dy;
     double bottom;
-    if(top > visibleHeight/2){
+    if (top > visibleHeight / 2) {
       top = null;
       bottom = keyboardHeight + editorSize.height + suggestionOffset.dy;
     }
-    print("top $top bottom $bottom editorPosition.dy ${editorPosition.dy} visibleHeight $visibleHeight");
+    print(
+        "top $top bottom $bottom editorPosition.dy ${editorPosition.dy} visibleHeight $visibleHeight");
     overlaySuggestions = OverlayEntry(
         builder: (context) => Positioned(
-          top: top,
-          bottom: bottom,
-          left: suggestionOffset.dx,
-          child: _buildSuggestions(context),
-        )
-    );
+              top: top,
+              bottom: bottom,
+              left: suggestionOffset.dx,
+              child: _buildSuggestions(context),
+            ));
     overlayState.insert(overlaySuggestions);
   }
 
-  clearSuggestions(){
+  clearSuggestions() {
     overlaySuggestions?.remove();
     overlaySuggestions = null;
   }
 
-  Widget _buildSuggestions(BuildContext context){
-    if(suggestions.isNotEmpty) {
+  Widget _buildSuggestions(BuildContext context) {
+    if (suggestions.isNotEmpty) {
       return Material(
           child: ConstrainedBox(
-              constraints: widget.suggestionsConstraints ?? BoxConstraints(
-                  maxWidth: MediaQuery.of(context).size.width,
-                  maxHeight: 400.0
-              ),
+              constraints: widget.suggestionsConstraints ??
+                  BoxConstraints(
+                      maxWidth: MediaQuery.of(context).size.width,
+                      maxHeight: 400.0),
               child: Container(
                 decoration: BoxDecoration(
                     color: Colors.transparent,
                     border: Border.all(color: const Color(0x32273d52)),
-                    borderRadius: BorderRadius.circular(4.0)
-                ),
+                    borderRadius: BorderRadius.circular(4.0)),
                 child: _buildSuggestionsList(),
-              )
-          )
-      );
+              )));
     }
     return Container();
   }
 
-  ListView _buildSuggestionsList(){
+  ListView _buildSuggestionsList() {
     return ListView(
       padding: EdgeInsets.zero,
       shrinkWrap: true,
       children: suggestions.map<Widget>((TokenSuggestion suggestion) {
-        return InkWell(
-            child: Builder(builder: (BuildContext context) {
-              return suggestion.display;
-            }),
-            onTap: () {
-              int indexNow = textEditingController.selection.baseOffset;
-              int indexAt = match.start;
-              String addToInput = suggestion.onInsert();
-              int offSet = indexAt + 1;
-              textEditingController.text =
-                  textEditingController.text.substring(0, indexAt) + addToInput
-                      + textEditingController.text.substring(indexNow);
-              offSet = offSet + addToInput.length;
-              textEditingController.selection = TextSelection(
-                  baseOffset: textEditingController.selection.baseOffset + offSet,
-                  extentOffset: textEditingController.selection.extentOffset +
-                      offSet
-              );
-              if (tokenConfig.meta != null) {
-                tokenConfig.meta.collection.add(SelectionInfo(
-                    indexAt, indexAt + addToInput.length - 1,
-                    suggestion.data));
-              }
-              setState(() {});
-            }
-        );
+        return InkWell(child: Builder(builder: (BuildContext context) {
+          return suggestion.display;
+        }), onTap: () {
+          int indexNow = textEditingController.selection.baseOffset;
+          int indexAt = match.start;
+          String addToInput = suggestion.onInsert();
+          int offSet = indexAt + 1;
+          textEditingController.text =
+              textEditingController.text.substring(0, indexAt) +
+                  addToInput +
+                  textEditingController.text.substring(indexNow);
+          offSet = offSet + addToInput.length;
+          textEditingController.selection = TextSelection(
+              baseOffset: textEditingController.selection.baseOffset + offSet,
+              extentOffset:
+                  textEditingController.selection.extentOffset + offSet);
+          if (tokenConfig.meta != null) {
+            tokenConfig.meta.collection.add(SelectionInfo(
+                indexAt, indexAt + addToInput.length - 1, suggestion.data));
+          }
+          setState(() {});
+        });
       }).toList(),
     );
   }
 
-  triggerSave(){
-    if(widget.onSaved!=null) {
+  triggerSave() {
+    if (widget.onSaved != null) {
       widget.onSaved(textEditingController.text);
     }
   }
@@ -310,38 +298,36 @@ class _MarkdownEditorState extends State<MarkdownEditor> with WidgetsBindingObse
     clearSuggestions();
     super.dispose();
   }
-
 }
 
-class MarkdownEditorController{
-
+class MarkdownEditorController {
   _MarkdownEditorState __state;
   List<VoidCallback> listeners = [];
 
-  set _state(_MarkdownEditorState state){
+  set _state(_MarkdownEditorState state) {
     __state = state;
     updateListeners();
   }
+
   _MarkdownEditorState get _state => __state;
 
   TextEditingController get controller => _state?.textEditingController;
   String get text => _state?.textEditingController?.text;
 
-  triggerSave(){
+  triggerSave() {
     _state?.triggerSave();
   }
 
-  updateListeners(){
-    if(controller == null) return;
-    for(VoidCallback listener in listeners){
+  updateListeners() {
+    if (controller == null) return;
+    for (VoidCallback listener in listeners) {
       controller.addListener(listener);
     }
     listeners = [];
   }
 
-  addListener(VoidCallback listener){
+  addListener(VoidCallback listener) {
     listeners.add(listener);
     updateListeners();
   }
-
 }
