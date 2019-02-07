@@ -8,6 +8,7 @@ class MarkdownEditor extends StatefulWidget {
 
   final String value;
   final String hint;
+  final bool autoFocus;
   final OnSavedCallback onSaved;
   final List<MarkdownTokenConfig> tokenConfigs;
   final TextStyle textStyle;
@@ -24,6 +25,7 @@ class MarkdownEditor extends StatefulWidget {
     Key key,
     this.value,
     this.hint,
+    this.autoFocus,
     this.onSaved,
     this.onChange,
     this.controller,
@@ -113,7 +115,7 @@ class _MarkdownEditorState extends State<MarkdownEditor> with WidgetsBindingObse
         //Text input box
         TextFormField(
             controller: textEditingController,
-            autofocus: true,
+            autofocus: widget.autoFocus??true,
             keyboardType: TextInputType.multiline,
             maxLines: null,
             style: widget.textStyle.copyWith(color: Colors.transparent),
