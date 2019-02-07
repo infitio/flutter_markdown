@@ -1,3 +1,3 @@
-## [0.0.1] - TODO: Add release date.
+## [0.1.0] - 08 Feb, 2019
 
-* TODO: Describe initial release.
+* Minimalistic, highly customizable, regexp based markdown editor and viewer by adhara
