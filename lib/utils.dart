@@ -30,7 +30,7 @@ void urlOpener(MarkdownToken span) async {
 
 String stripFirstAndLast(String text) => text.substring(1, text.length - 1);
 
-String _baseCharacters = r'a-zA-Z0-9\/?.",:<>' + r"'";
+String _baseCharacters = r'a-zA-Z0-9\/?.",!:<>' + r"'";
 
 class MarkdownTokenConfig {
   final MarkdownTokenTypes type;
