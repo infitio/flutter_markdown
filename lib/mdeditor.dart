@@ -82,9 +82,13 @@ class _MarkdownEditorState extends State<MarkdownEditor>
 
   @override
   Widget build(BuildContext context) {
+    final DefaultTextStyle defaultTextStyle = DefaultTextStyle.of(context);
+    TextStyle effectiveTextStyle = widget.textStyle;
+    if (widget.textStyle == null || widget.textStyle.inherit)
+      effectiveTextStyle = defaultTextStyle.style.merge(widget.textStyle);
     double topOffset = _decoration.labelStyle?.fontSize ?? 0.0;
     if (_decoration.hintStyle != null) {
-      topOffset += _decoration.hintStyle.fontSize - widget.textStyle.fontSize;
+      topOffset += _decoration.hintStyle.fontSize - effectiveTextStyle.fontSize;
     }
     /*if(_decoration.contentPadding!=null){
       topOffset += _decoration.contentPadding.vertical/2;
@@ -99,7 +103,7 @@ class _MarkdownEditorState extends State<MarkdownEditor>
           child: MarkdownViewer(
             content: textEditingController.text,
             collapsible: false,
-            textStyle: widget.textStyle,
+            textStyle: effectiveTextStyle,
             highlightedTextStyle: widget.highlightedTextStyle,
             tokenConfigs: widget.tokenConfigs,
             /*formatTypes: [
@@ -115,8 +119,8 @@ class _MarkdownEditorState extends State<MarkdownEditor>
             autofocus: widget.autoFocus ?? true,
             keyboardType: TextInputType.multiline,
             maxLines: null,
-            style: widget.textStyle.copyWith(color: Colors.transparent),
-//            style: widget.textStyle.copyWith(color: Colors.grey.withOpacity(0.1)),
+            style: effectiveTextStyle.copyWith(color: Colors.transparent),
+//            style: effectiveTextStyle.copyWith(color: Colors.grey.withOpacity(0.1)),
             decoration: _decoration,
             onSaved: widget.onSaved),
       ],
