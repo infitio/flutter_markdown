@@ -1,6 +1,6 @@
 name: adhara_markdown
 description: Minimalistic, highly customizable, regexp based markdown editor and viewer by adhara
-version: 0.1.2
+version: 0.2.0
 homepage: https://github.com/infitio/flutter_markdown
 
 environment:

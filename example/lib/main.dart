@@ -17,32 +17,24 @@ List<String> storyPieces = [
       " The tree saw the change in the elder brother’s heart and gave them all the golden apples they could ever need."
 ];
 
-class App extends StatelessWidget{
-
+class App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
         debugShowCheckedModeBanner: false,
         home: HomePage(),
         theme: new ThemeData(
-            primaryColor: Colors.blue,
-            backgroundColor: Colors.white
-        ),
-        color: Colors.blue
-    );
+            primaryColor: Colors.blue, backgroundColor: Colors.white),
+        color: Colors.blue);
   }
-
 }
 
-class HomePage extends StatefulWidget{
-
+class HomePage extends StatefulWidget {
   @override
   State<StatefulWidget> createState() => HomePageState();
-
 }
 
-class HomePageState extends State<HomePage>{
-
+class HomePageState extends State<HomePage> {
   int editingPiece = -1;
   MarkdownEditorController controller;
 
@@ -53,33 +45,43 @@ class HomePageState extends State<HomePage>{
         title: Text("MD Viewer & Editor"),
         actions: <Widget>[
           IconButton(
-              icon: Icon(Icons.info, color: Colors.white,),
-              onPressed: (){
+              icon: Icon(
+                Icons.info,
+                color: Colors.white,
+              ),
+              onPressed: () {
                 showAboutDialog(
                     context: context,
                     applicationName: "Adhara MD Editor",
                     children: [
-                      Text("How to use", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.0),),
+                      Text(
+                        "How to use",
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 18.0),
+                      ),
                       Text("Tap on the paragraphs to change to edit mode."),
                       Text("edit and click on update FAB")
-                    ]
-                );
+                    ]);
 //              showDialog(
 //                context: context,
 //                builder: (BuildContext context){
 //                  return Text("ad");
 //                }
 //              );
-              }
-          )
+              })
         ],
       ),
-      floatingActionButton: (editingPiece==-1)?null:FloatingActionButton(child: Icon(Icons.check), onPressed: (){
-        setState((){
-          storyPieces[editingPiece] = controller.text;
-          editingPiece = -1;
-        });
-      },),
+      floatingActionButton: (editingPiece == -1)
+          ? null
+          : FloatingActionButton(
+              child: Icon(Icons.check),
+              onPressed: () {
+                setState(() {
+                  storyPieces[editingPiece] = controller.text;
+                  editingPiece = -1;
+                });
+              },
+            ),
       body: Container(
         padding: EdgeInsets.all(12.0),
         child: ListView(
@@ -94,10 +96,11 @@ class HomePageState extends State<HomePage>{
   }
 
   get textStyle => TextStyle(fontSize: 18.0, color: Colors.black);
-  get highlightedTextStyle => TextStyle(fontSize: 18.0, color: Colors.lightBlue);
+  get highlightedTextStyle =>
+      TextStyle(fontSize: 18.0, color: Colors.lightBlue);
 
-  _buildStory(String storyPiece, int pieceIndex){
-    if(editingPiece == pieceIndex){
+  _buildStory(String storyPiece, int pieceIndex) {
+    if (editingPiece == pieceIndex) {
       return _buildStoryEditor(storyPiece, pieceIndex);
     }
     return GestureDetector(
@@ -111,15 +114,15 @@ class HomePageState extends State<HomePage>{
           MarkdownTokenTypes.code
         ],
       ),
-      onTap: (){
-        setState((){
+      onTap: () {
+        setState(() {
           editingPiece = pieceIndex;
         });
       },
     );
   }
 
-  _buildStoryEditor(String storyPiece, pieceIndex){
+  _buildStoryEditor(String storyPiece, pieceIndex) {
     controller = MarkdownEditorController();
     return Container(
       child: Column(
@@ -138,5 +141,4 @@ class HomePageState extends State<HomePage>{
       ),
     );
   }
-
 }
