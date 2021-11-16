@@ -8,7 +8,7 @@ typedef void AdharaRichTextSpanTapCallback(MarkdownToken richTextSpan);
 typedef Future<List<TokenSuggestion>> AdharaRichTextSuggestionCallback(
     String hint);
 typedef String OnSuggestionInsert();
-typedef void OnSavedCallback(String content);
+typedef void OnSavedCallback(String? content);
 
 enum MarkdownTokenTypes {
   link,
@@ -33,18 +33,18 @@ String stripFirstAndLast(String text) => text.substring(1, text.length - 1);
 String _baseCharacters = r'a-zA-Z0-9\/?.",!:<>' + r"'";
 
 class MarkdownTokenConfig {
-  final MarkdownTokenTypes type;
-  final RegExp regExp;
-  final RegExp hintRegExp;
-  final TextStyle textStyle;
-  final StringCallbackFn postProcess;
-  final MarkdownMeta meta;
-  final AdharaRichTextSpanTapCallback onTap;
-  final AdharaRichTextSuggestionCallback suggestions;
+  final MarkdownTokenTypes? type;
+  final RegExp? regExp;
+  final RegExp? hintRegExp;
+  final TextStyle? textStyle;
+  final StringCallbackFn? postProcess;
+  final MarkdownMeta? meta;
+  final AdharaRichTextSpanTapCallback? onTap;
+  final AdharaRichTextSuggestionCallback? suggestions;
 
   MarkdownTokenConfig(
-      {@required this.type,
-      @required this.textStyle,
+      {required this.type,
+      required this.textStyle,
       this.regExp,
       this.hintRegExp,
       this.postProcess,
@@ -71,13 +71,13 @@ class MarkdownTokenConfig {
         onTap = urlOpener;
 
   MarkdownTokenConfig.hashTag(
-      {this.textStyle, this.suggestions, this.postProcess, this.onTap})
+      {required this.textStyle, this.suggestions, this.postProcess, this.onTap})
       : type = MarkdownTokenTypes.hashTag,
         regExp = RegExp(r'#[' + _baseCharacters + ']+'),
         hintRegExp = RegExp(r'#[' + _baseCharacters + '\-]*'),
         meta = null;
 
-  MarkdownTokenConfig.bold({TextStyle textStyle, StringCallbackFn postProcess})
+  MarkdownTokenConfig.bold({required TextStyle textStyle, StringCallbackFn? postProcess})
       : type = MarkdownTokenTypes.bold,
         regExp = RegExp(r'\*[' + _baseCharacters + r'_~`\-\s]*\*'),
         hintRegExp = null,
@@ -88,7 +88,7 @@ class MarkdownTokenConfig {
         onTap = null;
 
   MarkdownTokenConfig.italic(
-      {TextStyle textStyle, StringCallbackFn postProcess})
+      {required TextStyle textStyle, StringCallbackFn? postProcess})
       : type = MarkdownTokenTypes.italic,
         regExp = RegExp(r'_[' + _baseCharacters + r'~`\-\*\s]*_'),
         hintRegExp = null,
@@ -99,7 +99,7 @@ class MarkdownTokenConfig {
         onTap = null;
 
   MarkdownTokenConfig.strikeThrough(
-      {TextStyle textStyle, StringCallbackFn postProcess})
+      {required TextStyle textStyle, StringCallbackFn? postProcess})
       : type = MarkdownTokenTypes.strikeThrough,
         regExp = RegExp(r'~[' + _baseCharacters + r'_`\-\*\s]*~'),
         hintRegExp = null,
@@ -109,7 +109,7 @@ class MarkdownTokenConfig {
         suggestions = null,
         onTap = null;
 
-  MarkdownTokenConfig.code({TextStyle textStyle, StringCallbackFn postProcess})
+  MarkdownTokenConfig.code({required TextStyle textStyle, StringCallbackFn? postProcess})
       : type = MarkdownTokenTypes.code,
         regExp = RegExp(r'`[' + _baseCharacters + r'~_\-\*\s]*`'),
         hintRegExp = null,
@@ -122,11 +122,11 @@ class MarkdownTokenConfig {
 
 class MarkdownToken {
   final MarkdownTokenConfig config;
-  final SelectionInfo selectionInfo;
+  final SelectionInfo? selectionInfo;
   final String text;
 
   MarkdownToken(
-      {@required this.text, @required this.config, this.selectionInfo});
+      {required this.text, required this.config, this.selectionInfo});
 
   TextSpan getSpan() {
     return TextSpan(
@@ -135,7 +135,7 @@ class MarkdownToken {
       recognizer: (this.config.onTap != null)
           ? (TapGestureRecognizer()
             ..onTap = () {
-              this.config.onTap(this);
+              this.config.onTap!(this);
             })
           : null,
     );
@@ -143,9 +143,9 @@ class MarkdownToken {
 }
 
 class TokenSuggestion {
-  Widget display;
+  Widget? display;
   dynamic data;
-  OnSuggestionInsert onInsert;
+  OnSuggestionInsert? onInsert;
 
   TokenSuggestion({this.display, this.data, this.onInsert});
 }

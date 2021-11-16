@@ -36,7 +36,7 @@ class HomePage extends StatefulWidget {
 
 class HomePageState extends State<HomePage> {
   int editingPiece = -1;
-  MarkdownEditorController controller;
+  late MarkdownEditorController controller;
 
   @override
   Widget build(BuildContext context) {
