@@ -1,18 +1,14 @@
 class MarkDownBean {
-  String content;
-  MarkdownMeta meta;
+  String? content;
+  MarkdownMeta? meta;
 }
 
 class MarkdownMeta {
   List<SelectionInfo> collection;
 
   MarkdownMeta(this.collection) {
-    if (collection == null) {
-      collection = [];
-    } else {
-      collection.sort((SelectionInfo selection1, SelectionInfo selection2) =>
-          selection1.startIndex.compareTo(selection2.startIndex));
-    }
+    collection.sort((SelectionInfo selection1, SelectionInfo selection2) =>
+        selection1.startIndex.compareTo(selection2.startIndex));
   }
 
   SelectionInfo selectionMeta(int user) => collection[user];

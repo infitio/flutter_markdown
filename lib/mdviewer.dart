@@ -4,17 +4,17 @@ import 'package:adhara_markdown/utils.dart';
 
 class MarkdownViewer extends StatelessWidget {
   final String content;
-  final int loggedInUser;
+  final int? loggedInUser;
   final TextStyle textStyle;
-  final TextStyle highlightedTextStyle;
+  final TextStyle? highlightedTextStyle;
   final TextStyle fadedStyle;
-  final List<MarkdownTokenTypes> formatTypes;
+  final List<MarkdownTokenTypes?>? formatTypes;
   final bool collapsible;
-  final List<MarkdownTokenConfig> tokenConfigs;
+  final List<MarkdownTokenConfig>? tokenConfigs;
   final int collapseLimit;
 
   MarkdownViewer(
-      {Key key,
+      {Key? key,
       this.content: "",
       this.loggedInUser,
       this.textStyle: const TextStyle(color: Colors.black),
@@ -60,7 +60,7 @@ class MarkdownViewer extends StatelessWidget {
       richTextChildren.add(TextSpan(
         text: "Read more",
         style: fadedStyle.copyWith(
-            color: fadedStyle.color.withOpacity(0.6),
+            color: fadedStyle.color!.withOpacity(0.6),
             decoration: TextDecoration.underline,
             height: 1.3),
         recognizer: null,
@@ -77,7 +77,7 @@ class MarkdownViewer extends StatelessWidget {
   _convertPostToTextSpans(BuildContext context, String content) {
     List contentSpans = [content];
     for (MarkdownTokenConfig spanConfig in _textSpanConfigs) {
-      if (formatTypes == null || formatTypes.indexOf(spanConfig.type) != -1) {
+      if (formatTypes == null || formatTypes!.indexOf(spanConfig.type) != -1) {
         if (spanConfig.meta != null) {
           contentSpans = splitUserTokens(contentSpans, spanConfig);
         } else {
@@ -103,7 +103,7 @@ class MarkdownViewer extends StatelessWidget {
       if (text is String) {
         int startIndex = 0;
         if (userSpanConfig.meta != null) {
-          userSpanConfig.meta.collection.forEach((SelectionInfo info) {
+          userSpanConfig.meta!.collection.forEach((SelectionInfo info) {
             returnTexts.add(text.substring(startIndex, info.startIndex));
             returnTexts.add(
               MarkdownToken(
@@ -125,7 +125,7 @@ class MarkdownViewer extends StatelessWidget {
     List returnTexts = [];
     for (var text in strings) {
       if (text is String) {
-        Iterable<Match> matches = spanConfig.regExp.allMatches(text);
+        Iterable<Match> matches = spanConfig.regExp!.allMatches(text);
         int startIndex = 0;
         for (Match m in matches) {
           returnTexts.add(text.substring(startIndex, m.start));
@@ -133,7 +133,7 @@ class MarkdownViewer extends StatelessWidget {
           returnTexts.add(MarkdownToken(
             config: spanConfig,
             text: (spanConfig.postProcess != null)
-                ? spanConfig.postProcess(matchedText)
+                ? spanConfig.postProcess!(matchedText)
                 : matchedText,
           ));
           startIndex = m.end;
